@@ -70,7 +70,7 @@ public class Book {
     public static Book from(Integer id, String name, String abbr, String testament,
                            Integer bookOrder, Integer chapters, Integer categoryId) {
         BookName bookName = BookName.of(name);
-        Testament testamentEnum = "신약".equals(testament) ? Testament.NEW : Testament.OLD;
+        Testament testamentEnum = "신약".equals(testament) ? Testament.신약 : Testament.구약;
         
         return of(
             id != null ? id.longValue() : null,
@@ -121,14 +121,14 @@ public class Book {
      * 이 책이 신약인지 확인
      */
     public boolean isNewTestament() {
-        return testament == Testament.NEW;
+        return testament == Testament.신약;
     }
     
     /**
      * 이 책이 구약인지 확인
      */
     public boolean isOldTestament() {
-        return testament == Testament.OLD;
+        return testament == Testament.구약;
     }
     
     /**
@@ -151,7 +151,7 @@ public class Book {
     public String toDisplayString() {
         return String.format("%s (%s, %d장)", 
             bookName.getName(), 
-            testament == Testament.NEW ? "신약" : "구약", 
+            testament == Testament.신약 ? "신약" : "구약", 
             totalChapters);
     }
     

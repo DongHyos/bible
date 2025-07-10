@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.*;
@@ -95,8 +96,10 @@ public class AppExceptionHandler {
      */
     @ExceptionHandler(BizException.class)
     @ResponseBody
-    public final AppResponse handleBizException(BizException ex) {
-        return AppResponse.error(ex);
+    public final ResponseEntity<AppResponse> handleBizException(BizException ex) {
+        return ResponseEntity
+                .status(ex.getResponseCode().status())
+                .body(AppResponse.error(ex));
     }
 
     /**
