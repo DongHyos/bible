@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class BookQueryService {
+public class BookApplicationService {
     
     private final BookRepository bookRepository;
     private final BibleStatisticsDomainService statisticsDomainService;

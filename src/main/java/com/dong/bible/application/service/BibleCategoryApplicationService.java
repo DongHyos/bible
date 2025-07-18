@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 public class BibleCategoryApplicationService {
     
     private final BibleCategoryRepository categoryRepository;
-    private final BookQueryService bookQueryService;  // 기존 Service 재사용
+    private final BookApplicationService bookApplicationService;  // 기존 Service 재사용
 
     /**
      * 구약/신약별 분류 조회
@@ -68,9 +68,9 @@ public class BibleCategoryApplicationService {
         BibleCategory category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Category not found with id: " + categoryId));
         
-        // 카테고리의 책들을 BookQueryService를 통해 조회
+        // 카테고리의 책들을 BookApplicationService를 통해 조회
         return category.getBookIds().stream()
-                .map(bookQueryService::getBookById)
+                .map(bookApplicationService::getBookById)
                 .collect(Collectors.toList());
     }
 
@@ -146,7 +146,7 @@ public class BibleCategoryApplicationService {
     private BibleCategoryDto buildCategoryDtoWithBooks(BibleCategory category) {
         // 카테고리 내 책들 조회
         List<BookDto> books = category.getBookIds().stream()
-                .map(bookQueryService::getBookById)
+                .map(bookApplicationService::getBookById)
                 .collect(Collectors.toList());
         
         // DTO 정적 팩토리 메서드 사용 (변환은 DTO가 담당)

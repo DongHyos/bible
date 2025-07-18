@@ -10,6 +10,7 @@ import com.dong.bible.domain.verse.BibleVerse;
 import com.dong.bible.domain.verse.BibleVerseRepository;
 import com.dong.bible.domain.verse.VerseContent;
 import com.dong.bible.domain.verse.VerseReference;
+import com.dong.bible.domain.verse.VerseSearchDomainService;
 import com.dong.bible.ENUM.Testament;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,16 +30,19 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class VerseQueryServiceTest {
+class VerseApplicationServiceTest {
 
     @Mock
     private BibleVerseRepository bibleVerseRepository;
 
     @Mock
-    private BookQueryService bookQueryService;
+    private BookApplicationService bookApplicationService;
+
+    @Mock
+    private VerseSearchDomainService verseSearchDomainService;
 
     @InjectMocks
-    private VerseQueryService verseQueryService;
+    private VerseApplicationService verseApplicationService;
 
     private Book 요한복음;
     private Book 창세기;
@@ -73,12 +77,12 @@ class VerseQueryServiceTest {
         Integer chapter = 3;
         List<BibleVerse> verses = Arrays.asList(요한복음3장16절, 요한복음3장17절);
 
-        when(bookQueryService.getBookDomainByName(bookName)).thenReturn(Optional.of(요한복음));
+        when(bookApplicationService.getBookDomainByName(bookName)).thenReturn(Optional.of(요한복음));
         when(bibleVerseRepository.findByChapter(bookName, chapter)).thenReturn(verses);
-        when(bookQueryService.getBookIdByName(bookName)).thenReturn(Optional.of(43));
+        when(bookApplicationService.getBookIdByName(bookName)).thenReturn(Optional.of(43));
 
         // When
-        ChapterQueryDto result = verseQueryService.getChapter(bookName, chapter);
+        ChapterQueryDto result = verseApplicationService.getChapter(bookName, chapter);
 
         // Then
         assertThat(result.getBookId()).isEqualTo(43);
@@ -86,9 +90,9 @@ class VerseQueryServiceTest {
         assertThat(result.getChapter()).isEqualTo(3);
         assertThat(result.getVerses()).hasSize(2);
 
-        verify(bookQueryService).getBookDomainByName(bookName);
+        verify(bookApplicationService).getBookDomainByName(bookName);
         verify(bibleVerseRepository).findByChapter(bookName, chapter);
-        verify(bookQueryService).getBookIdByName(bookName);
+        verify(bookApplicationService).getBookIdByName(bookName);
     }
 
     @Test
@@ -97,14 +101,14 @@ class VerseQueryServiceTest {
         String bookName = "존재하지않는책";
         Integer chapter = 1;
 
-        when(bookQueryService.getBookDomainByName(bookName)).thenReturn(Optional.empty());
+        when(bookApplicationService.getBookDomainByName(bookName)).thenReturn(Optional.empty());
 
         // When & Then
-        assertThatThrownBy(() -> verseQueryService.getChapter(bookName, chapter))
+        assertThatThrownBy(() -> verseApplicationService.getChapter(bookName, chapter))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Book not found: " + bookName);
 
-        verify(bookQueryService).getBookDomainByName(bookName);
+        verify(bookApplicationService).getBookDomainByName(bookName);
         verify(bibleVerseRepository, never()).findByChapter(anyString(), any());
     }
 
@@ -114,14 +118,14 @@ class VerseQueryServiceTest {
         String bookName = "요한복음";
         Integer invalidChapter = 25; // 요한복음은 21장까지
 
-        when(bookQueryService.getBookDomainByName(bookName)).thenReturn(Optional.of(요한복음));
+        when(bookApplicationService.getBookDomainByName(bookName)).thenReturn(Optional.of(요한복음));
 
         // When & Then
-        assertThatThrownBy(() -> verseQueryService.getChapter(bookName, invalidChapter))
+        assertThatThrownBy(() -> verseApplicationService.getChapter(bookName, invalidChapter))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("요한복음는 21장까지만 있습니다. 요청된 장: 25");
 
-        verify(bookQueryService).getBookDomainByName(bookName);
+        verify(bookApplicationService).getBookDomainByName(bookName);
         verify(bibleVerseRepository, never()).findByChapter(anyString(), any());
     }
 
@@ -131,15 +135,15 @@ class VerseQueryServiceTest {
         String bookName = "요한복음";
         Integer chapter = 3;
 
-        when(bookQueryService.getBookDomainByName(bookName)).thenReturn(Optional.of(요한복음));
+        when(bookApplicationService.getBookDomainByName(bookName)).thenReturn(Optional.of(요한복음));
         when(bibleVerseRepository.findByChapter(bookName, chapter)).thenReturn(List.of());
 
         // When & Then
-        assertThatThrownBy(() -> verseQueryService.getChapter(bookName, chapter))
+        assertThatThrownBy(() -> verseApplicationService.getChapter(bookName, chapter))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Chapter not found: 요한복음 3");
 
-        verify(bookQueryService).getBookDomainByName(bookName);
+        verify(bookApplicationService).getBookDomainByName(bookName);
         verify(bibleVerseRepository).findByChapter(bookName, chapter);
     }
 
@@ -152,19 +156,19 @@ class VerseQueryServiceTest {
         String bookName = "요한복음";
         VerseReference expectedReference = VerseReference.of(bookName, chapter, verse);
 
-        when(bookQueryService.getBookNameById(bookId)).thenReturn(bookName);
-        when(bookQueryService.getBookDomainByName(bookName)).thenReturn(Optional.of(요한복음));
+        when(bookApplicationService.getBookNameById(bookId)).thenReturn(bookName);
+        when(bookApplicationService.getBookDomainByName(bookName)).thenReturn(Optional.of(요한복음));
         when(bibleVerseRepository.findByReference(expectedReference)).thenReturn(Optional.of(요한복음3장16절));
 
         // When
-        VerseQueryDto result = verseQueryService.getVerse(bookId, chapter, verse);
+        VerseQueryDto result = verseApplicationService.getVerse(bookId, chapter, verse);
 
         // Then
         assertThat(result).isNotNull();
         assertThat(result.getText()).isEqualTo("하나님이 세상을 이처럼 사랑하사");
 
-        verify(bookQueryService).getBookNameById(bookId);
-        verify(bookQueryService).getBookDomainByName(bookName);
+        verify(bookApplicationService).getBookNameById(bookId);
+        verify(bookApplicationService).getBookDomainByName(bookName);
         verify(bibleVerseRepository).findByReference(expectedReference);
     }
 
@@ -177,17 +181,17 @@ class VerseQueryServiceTest {
         Integer verse = 999;
         VerseReference expectedReference = VerseReference.of(bookName, chapter, verse);
 
-        when(bookQueryService.getBookNameById(bookId)).thenReturn(bookName);
-        when(bookQueryService.getBookDomainByName(bookName)).thenReturn(Optional.of(요한복음));
+        when(bookApplicationService.getBookNameById(bookId)).thenReturn(bookName);
+        when(bookApplicationService.getBookDomainByName(bookName)).thenReturn(Optional.of(요한복음));
         when(bibleVerseRepository.findByReference(expectedReference)).thenReturn(Optional.empty());
 
         // When & Then
-        assertThatThrownBy(() -> verseQueryService.getVerse(bookId, chapter, verse))
+        assertThatThrownBy(() -> verseApplicationService.getVerse(bookId, chapter, verse))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Verse not found: 요한복음 3:999");
 
-        verify(bookQueryService).getBookNameById(bookId);
-        verify(bookQueryService).getBookDomainByName(bookName);
+        verify(bookApplicationService).getBookNameById(bookId);
+        verify(bookApplicationService).getBookDomainByName(bookName);
         verify(bibleVerseRepository).findByReference(expectedReference);
     }
 
@@ -201,14 +205,14 @@ class VerseQueryServiceTest {
         Integer endVerse = 17;
         List<BibleVerse> verses = Arrays.asList(요한복음3장16절, 요한복음3장17절);
 
-        when(bookQueryService.getBookNameById(bookId)).thenReturn(bookName);
-        when(bookQueryService.getBookDomainByName(bookName)).thenReturn(Optional.of(요한복음));
+        when(bookApplicationService.getBookNameById(bookId)).thenReturn(bookName);
+        when(bookApplicationService.getBookDomainByName(bookName)).thenReturn(Optional.of(요한복음));
         when(bibleVerseRepository.findByChapterRange(bookName, chapter, startVerse, endVerse))
                 .thenReturn(verses);
-        when(bookQueryService.getBookIdByName(bookName)).thenReturn(Optional.of(43));
+        when(bookApplicationService.getBookIdByName(bookName)).thenReturn(Optional.of(43));
 
         // When
-        VerseRangeQueryDto result = verseQueryService.getVerseRange(bookId, chapter, startVerse, endVerse);
+        VerseRangeQueryDto result = verseApplicationService.getVerseRange(bookId, chapter, startVerse, endVerse);
 
         // Then
         assertThat(result.getBookId()).isEqualTo(43);
@@ -217,10 +221,10 @@ class VerseQueryServiceTest {
         assertThat(result.getEndVerse()).isEqualTo(17);
         assertThat(result.getVerses()).hasSize(2);
 
-        verify(bookQueryService).getBookNameById(bookId);
-        verify(bookQueryService).getBookDomainByName(bookName);
+        verify(bookApplicationService).getBookNameById(bookId);
+        verify(bookApplicationService).getBookDomainByName(bookName);
         verify(bibleVerseRepository).findByChapterRange(bookName, chapter, startVerse, endVerse);
-        verify(bookQueryService).getBookIdByName(bookName);
+        verify(bookApplicationService).getBookIdByName(bookName);
     }
 
     @Test
@@ -232,16 +236,16 @@ class VerseQueryServiceTest {
         Integer startVerse = 20;
         Integer endVerse = 10; // start > end
 
-        when(bookQueryService.getBookNameById(bookId)).thenReturn(bookName);
-        when(bookQueryService.getBookDomainByName(bookName)).thenReturn(Optional.of(요한복음));
+        when(bookApplicationService.getBookNameById(bookId)).thenReturn(bookName);
+        when(bookApplicationService.getBookDomainByName(bookName)).thenReturn(Optional.of(요한복음));
 
         // When & Then
-        assertThatThrownBy(() -> verseQueryService.getVerseRange(bookId, chapter, startVerse, endVerse))
+        assertThatThrownBy(() -> verseApplicationService.getVerseRange(bookId, chapter, startVerse, endVerse))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("시작 절(20)이 끝 절(10)보다 클 수 없습니다");
 
         // bookId를 bookName으로 변환하는 것까지는 호출되지만, 이후 검증에서 실패
-        verify(bookQueryService).getBookNameById(bookId);
+        verify(bookApplicationService).getBookNameById(bookId);
         verify(bibleVerseRepository, never()).findByChapterRange(anyString(), any(), any(), any());
     }
 
@@ -250,35 +254,39 @@ class VerseQueryServiceTest {
         // Given
         String keyword = "하나님";
         List<BibleVerse> allVerses = Arrays.asList(요한복음3장16절, 요한복음3장17절, 창세기1장1절);
+        List<BibleVerse> searchedVerses = Arrays.asList(요한복음3장16절, 요한복음3장17절, 창세기1장1절);
 
         when(bibleVerseRepository.findAll()).thenReturn(allVerses);
+        when(verseSearchDomainService.searchByKeyword(allVerses, keyword)).thenReturn(searchedVerses);
 
         // When
-        VerseSearchDto result = verseQueryService.searchVerses(keyword);
+        VerseSearchDto result = verseApplicationService.searchVerses(keyword);
 
         // Then
         assertThat(result.getKeyword()).isEqualTo("하나님");
         assertThat(result.getVerses()).hasSize(3); // 모든 구절에 "하나님" 포함
 
         verify(bibleVerseRepository).findAll();
+        verify(verseSearchDomainService).searchByKeyword(allVerses, keyword);
     }
 
     @Test
     void 텍스트_검색_키워드_없음_예외() {
         // When & Then
-        assertThatThrownBy(() -> verseQueryService.searchVerses(null))
+        assertThatThrownBy(() -> verseApplicationService.searchVerses(null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Search keyword cannot be empty");
 
-        assertThatThrownBy(() -> verseQueryService.searchVerses(""))
+        assertThatThrownBy(() -> verseApplicationService.searchVerses(""))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Search keyword cannot be empty");
 
-        assertThatThrownBy(() -> verseQueryService.searchVerses("   "))
+        assertThatThrownBy(() -> verseApplicationService.searchVerses("   "))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Search keyword cannot be empty");
 
         verify(bibleVerseRepository, never()).findAll();
+        verify(verseSearchDomainService, never()).searchByKeyword(any(), any());
     }
 
     @Test
@@ -292,7 +300,7 @@ class VerseQueryServiceTest {
         when(bibleVerseRepository.findById(verseId)).thenReturn(Optional.of(mockVerse));
 
         // When
-        VerseQueryDto result = verseQueryService.getVerseById(verseId);
+        VerseQueryDto result = verseApplicationService.getVerseById(verseId);
 
         // Then
         assertThat(result).isNotNull();
@@ -309,7 +317,7 @@ class VerseQueryServiceTest {
         when(bibleVerseRepository.findById(verseId)).thenReturn(Optional.empty());
 
         // When & Then
-        assertThatThrownBy(() -> verseQueryService.getVerseById(verseId))
+        assertThatThrownBy(() -> verseApplicationService.getVerseById(verseId))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Verse not found with id: 999");
 
@@ -323,20 +331,20 @@ class VerseQueryServiceTest {
         String bookName = "요한복음";
         List<BibleVerse> verses = Arrays.asList(요한복음3장16절, 요한복음3장17절);
 
-        when(bookQueryService.getBookNameById(bookId)).thenReturn(bookName);
-        when(bookQueryService.getBookDomainByName(bookName)).thenReturn(Optional.of(요한복음));
+        when(bookApplicationService.getBookNameById(bookId)).thenReturn(bookName);
+        when(bookApplicationService.getBookDomainByName(bookName)).thenReturn(Optional.of(요한복음));
         when(bibleVerseRepository.findByBook(bookName)).thenReturn(verses);
 
         // When
-        List<VerseQueryDto> result = verseQueryService.getBookVerses(bookId);
+        List<VerseQueryDto> result = verseApplicationService.getBookVerses(bookId);
 
         // Then
         assertThat(result).hasSize(2);
         assertThat(result.get(0).getText()).isEqualTo("하나님이 세상을 이처럼 사랑하사");
         assertThat(result.get(1).getText()).isEqualTo("하나님이 그 아들을 세상에 보내신 것은");
 
-        verify(bookQueryService).getBookNameById(bookId);
-        verify(bookQueryService).getBookDomainByName(bookName);
+        verify(bookApplicationService).getBookNameById(bookId);
+        verify(bookApplicationService).getBookDomainByName(bookName);
         verify(bibleVerseRepository).findByBook(bookName);
     }
 
@@ -349,7 +357,7 @@ class VerseQueryServiceTest {
         when(bibleVerseRepository.findByTestament(isNewTestament)).thenReturn(newTestamentVerses);
 
         // When
-        List<VerseQueryDto> result = verseQueryService.getTestamentVerses(isNewTestament);
+        List<VerseQueryDto> result = verseApplicationService.getTestamentVerses(isNewTestament);
 
         // Then
         assertThat(result).hasSize(2);
@@ -364,21 +372,21 @@ class VerseQueryServiceTest {
         String bookName = "요한복음";
         List<BibleVerse> verses = Arrays.asList(요한복음3장16절, 요한복음3장17절);
 
-        when(bookQueryService.getBookNameById(bookId)).thenReturn(bookName);
-        when(bookQueryService.getBookDomainByName(bookName)).thenReturn(Optional.of(요한복음));
+        when(bookApplicationService.getBookNameById(bookId)).thenReturn(bookName);
+        when(bookApplicationService.getBookDomainByName(bookName)).thenReturn(Optional.of(요한복음));
         when(bibleVerseRepository.findByChapter(bookName, chapter)).thenReturn(verses);
-        when(bookQueryService.getBookIdByName(bookName)).thenReturn(Optional.of(43));
+        when(bookApplicationService.getBookIdByName(bookName)).thenReturn(Optional.of(43));
 
         // When
-        ChapterQueryDto result = verseQueryService.getChapterById(bookId, chapter);
+        ChapterQueryDto result = verseApplicationService.getChapterById(bookId, chapter);
 
         // Then
         assertThat(result.getBookId()).isEqualTo(43);
         assertThat(result.getBookName()).isEqualTo("요한복음");
         assertThat(result.getChapter()).isEqualTo(3);
 
-        verify(bookQueryService).getBookNameById(bookId);
-        verify(bookQueryService).getBookDomainByName(bookName);
+        verify(bookApplicationService).getBookNameById(bookId);
+        verify(bookApplicationService).getBookDomainByName(bookName);
     }
 
     @Test
@@ -387,33 +395,33 @@ class VerseQueryServiceTest {
         Integer bookId = 999;
         Integer chapter = 1;
 
-        when(bookQueryService.getBookNameById(bookId))
+        when(bookApplicationService.getBookNameById(bookId))
                 .thenThrow(new IllegalArgumentException("Book not found with id: 999"));
 
         // When & Then
-        assertThatThrownBy(() -> verseQueryService.getChapterById(bookId, chapter))
+        assertThatThrownBy(() -> verseApplicationService.getChapterById(bookId, chapter))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Book not found with id: 999");
 
-        verify(bookQueryService).getBookNameById(bookId);
+        verify(bookApplicationService).getBookNameById(bookId);
     }
 
     @Test
     void 입력값_검증_테스트() {
         // Given & When & Then
-        assertThatThrownBy(() -> verseQueryService.getChapter(null, 1))
+        assertThatThrownBy(() -> verseApplicationService.getChapter(null, 1))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Book name cannot be empty");
 
-        assertThatThrownBy(() -> verseQueryService.getChapter("", 1))
+        assertThatThrownBy(() -> verseApplicationService.getChapter("", 1))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Book name cannot be empty");
 
-        assertThatThrownBy(() -> verseQueryService.getChapter("   ", 1))
+        assertThatThrownBy(() -> verseApplicationService.getChapter("   ", 1))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Book name cannot be empty");
 
-        assertThatThrownBy(() -> verseQueryService.getVerseById(null))
+        assertThatThrownBy(() -> verseApplicationService.getVerseById(null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Verse ID cannot be null");
     }

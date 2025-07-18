@@ -1,7 +1,7 @@
 package com.dong.bible.web.controller;
 
-import com.dong.bible.application.service.BookQueryService;
-import com.dong.bible.application.service.VerseQueryService;
+import com.dong.bible.application.service.BookApplicationService;
+import com.dong.bible.application.service.VerseApplicationService;
 import com.dong.bible.application.dto.ChapterQueryDto;
 import com.dong.bible.application.dto.VerseQueryDto;
 import com.dong.bible.application.dto.VerseRangeQueryDto;
@@ -53,10 +53,10 @@ class KrvVerseControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private VerseQueryService verseQueryService;
+    private VerseApplicationService verseQueryService;
 
     @MockitoBean
-    private BookQueryService bookQueryService;
+    private BookApplicationService bookQueryService;
 
     @MockitoBean
     private VerseResponseMapper verseResponseMapper;

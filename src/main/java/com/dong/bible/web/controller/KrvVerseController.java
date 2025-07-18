@@ -1,6 +1,6 @@
 package com.dong.bible.web.controller;
 
-import com.dong.bible.application.service.VerseQueryService;
+import com.dong.bible.application.service.VerseApplicationService;
 import com.dong.bible.application.dto.ChapterQueryDto;
 import com.dong.bible.application.dto.VerseQueryDto;
 import com.dong.bible.application.dto.VerseRangeQueryDto;
@@ -25,7 +25,7 @@ import java.util.List;
  * 
  * DDD 구조 적용:
  * - Web API는 ID 기반으로 클라이언트 친화적 설계
- * - 내부에서 BookQueryService로 ID → 도메인 언어 변환
+ * - 내부에서 BookApplicationService로 ID → 도메인 언어 변환
  * - Application Service에서 완전 DDD 적용
  */
 @RestController
@@ -34,7 +34,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class KrvVerseController {
 
-    private final VerseQueryService verseQueryService;
+    private final VerseApplicationService verseApplicationService;
     private final VerseResponseMapper verseResponseMapper;
 
     /**
@@ -48,8 +48,8 @@ public class KrvVerseController {
         
         log.info("Getting chapter by bookId: {}, chapter: {}", bookId, chapter);
         
-        // DDD: BookQueryService로 bookId → bookName 변환 후 도메인 중심 메서드 호출
-        ChapterQueryDto chapterQuery = verseQueryService.getChapterById(bookId, chapter);
+        // DDD: BookApplicationService로 bookId → bookName 변환 후 도메인 중심 메서드 호출
+        ChapterQueryDto chapterQuery = verseApplicationService.getChapterById(bookId, chapter);
         ChapterDto response = verseResponseMapper.toChapterDto(chapterQuery);
         
         return ResponseEntity.ok(AppResponse.of(response));
@@ -68,7 +68,7 @@ public class KrvVerseController {
         log.info("Getting verse by bookId: {}, chapter: {}, verse: {}", bookId, chapter, verse);
         
         // DDD: Application Service에서 모든 검증 처리 (bookId 변환 + 도메인 검증)
-        VerseQueryDto verseQuery = verseQueryService.getVerse(bookId, chapter, verse);
+        VerseQueryDto verseQuery = verseApplicationService.getVerse(bookId, chapter, verse);
         VerseDto response = verseResponseMapper.toVerseDto(verseQuery);
         
         return ResponseEntity.ok(AppResponse.of(response));
@@ -89,7 +89,7 @@ public class KrvVerseController {
                 bookId, chapter, fromVerse, toVerse);
 
         // DDD: Application Service에서 모든 검증 처리 (bookId 변환 + 범위 검증)
-        VerseRangeQueryDto rangeQuery = verseQueryService.getVerseRange(bookId, chapter, fromVerse, toVerse);
+        VerseRangeQueryDto rangeQuery = verseApplicationService.getVerseRange(bookId, chapter, fromVerse, toVerse);
         List<VerseDto> response = rangeQuery.getVerses().stream()
                 .map(verseResponseMapper::toVerseDto)
                 .toList();
@@ -108,7 +108,7 @@ public class KrvVerseController {
         log.info("Searching verses with keyword: '{}'", request.getKeyword());
         
         // DDD: 도메인 중심 Application Service 호출
-        VerseSearchDto searchResult = verseQueryService.searchVerses(request.getKeyword());
+        VerseSearchDto searchResult = verseApplicationService.searchVerses(request.getKeyword());
         List<VerseSearchResultDto> response = verseResponseMapper.toSearchResultDtoList(searchResult);
         
         return ResponseEntity.ok(AppResponse.of(response));
@@ -122,7 +122,7 @@ public class KrvVerseController {
     public ResponseEntity<AppResponse<VerseDto>> findById(@PathVariable Long id) {
         log.info("Getting verse by id: {}", id);
         
-        VerseQueryDto verseQuery = verseQueryService.getVerseById(id);
+        VerseQueryDto verseQuery = verseApplicationService.getVerseById(id);
         VerseDto response = verseResponseMapper.toVerseDto(verseQuery);
         
         return ResponseEntity.ok(AppResponse.of(response));
@@ -139,7 +139,7 @@ public class KrvVerseController {
         log.info("Getting all verses for bookId: {}", bookId);
         
         // DDD: Application Service에서 모든 검증 처리 (bookId 변환 + 도메인 검증)
-        List<VerseQueryDto> verseQueries = verseQueryService.getBookVerses(bookId);
+        List<VerseQueryDto> verseQueries = verseApplicationService.getBookVerses(bookId);
         List<VerseDto> response = verseQueries.stream()
                 .map(verseResponseMapper::toVerseDto)
                 .toList();

@@ -2,7 +2,7 @@ package com.dong.bible.web.controller;
 
 import com.dong.bible.application.dto.BibleStatisticsDto;
 import com.dong.bible.application.dto.BookDto;
-import com.dong.bible.application.service.BookQueryService;
+import com.dong.bible.application.service.BookApplicationService;
 import com.dong.bible.common.response.AppResponse;
 import com.dong.bible.web.dto.response.BibleBookDto;
 import com.dong.bible.web.mapper.BookResponseMapper;
@@ -20,7 +20,7 @@ import java.util.Map;
 /**
  * 성경책 조회 REST Controller
  * DDD 구조 완전 적용:
- * - BookQueryService에서 Application DTO 반환
+ * - BookApplicationService에서 Application DTO 반환
  * - BookResponseMapper로 Application DTO → Web DTO 변환
  * - Controller는 HTTP 처리만 담당
  */
@@ -30,7 +30,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class KrvBookController {
 
-    private final BookQueryService bookQueryService;
+    private final BookApplicationService bookApplicationService;
     private final BookResponseMapper bookResponseMapper;
 
     /**
@@ -40,7 +40,7 @@ public class KrvBookController {
     @GetMapping("/books")
     public ResponseEntity<AppResponse<List<BibleBookDto>>> getAllBooks() {
         log.info("Getting all books");
-        List<BookDto> books = bookQueryService.getAllBooks();
+        List<BookDto> books = bookApplicationService.getAllBooks();
         List<BibleBookDto> response = bookResponseMapper.fromBookDtoList(books);
         return ResponseEntity.ok(AppResponse.of(response));
     }
@@ -53,7 +53,7 @@ public class KrvBookController {
     public ResponseEntity<AppResponse<List<BibleBookDto>>> getBooksByTestament(
             @PathVariable String testament) {
         log.info("Getting books by testament: {}", testament);
-        List<BookDto> books = bookQueryService.getBooksByTestament(testament);
+        List<BookDto> books = bookApplicationService.getBooksByTestament(testament);
         List<BibleBookDto> response = bookResponseMapper.fromBookDtoList(books);
         return ResponseEntity.ok(AppResponse.of(response));
     }
@@ -65,7 +65,7 @@ public class KrvBookController {
     @GetMapping("/books/{id}")
     public ResponseEntity<AppResponse<BibleBookDto>> getBookById(@PathVariable Integer id) {
         log.info("Getting book by id: {}", id);
-        BookDto book = bookQueryService.getBookById(id);
+        BookDto book = bookApplicationService.getBookById(id);
         BibleBookDto response = bookResponseMapper.fromBookDto(book);
         return ResponseEntity.ok(AppResponse.of(response));
     }
@@ -77,7 +77,7 @@ public class KrvBookController {
     @GetMapping("/books/grouped")
     public ResponseEntity<AppResponse<Map<String, List<BibleBookDto>>>> getBooksByTestamentGrouped() {
         log.info("Getting books grouped by testament");
-        Map<String, List<BookDto>> groupedBooks = bookQueryService.getGroupedBooksByTestament();
+        Map<String, List<BookDto>> groupedBooks = bookApplicationService.getGroupedBooksByTestament();
         Map<String, List<BibleBookDto>> response = bookResponseMapper.fromGroupedBooks(groupedBooks);
         return ResponseEntity.ok(AppResponse.of(response));
     }
@@ -89,7 +89,7 @@ public class KrvBookController {
     @GetMapping("/books/statistics")
     public ResponseEntity<AppResponse<Map<String, Integer>>> getBibleStatistics() {
         log.info("Getting bible statistics");
-        BibleStatisticsDto statistics = bookQueryService.getBibleStatistics();
+        BibleStatisticsDto statistics = bookApplicationService.getBibleStatistics();
         Map<String, Integer> response = bookResponseMapper.fromStatisticsDto(statistics);
         return ResponseEntity.ok(AppResponse.of(response));
     }

@@ -9,6 +9,7 @@ import com.dong.bible.domain.verse.BibleVerse;
 import com.dong.bible.domain.verse.BibleVerseRepository;
 import com.dong.bible.domain.verse.VerseReference;
 import com.dong.bible.domain.verse.VerseReferenceRange;
+import com.dong.bible.domain.verse.VerseSearchDomainService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -21,7 +22,7 @@ import java.util.List;
  * 구절 조회 관련 Application Service (UseCase)
  * 
  * 순수 DDD 원칙 적용:
- * - BookQueryService와 조합하여 완전한 도메인 중심 구조
+ * - BookApplicationService와 조합하여 완전한 도메인 중심 구조
  * - Book 도메인을 활용한 검증 로직 강화
  * - Infrastructure 세부사항 완전 격리
  */
@@ -29,10 +30,11 @@ import java.util.List;
 @Slf4j
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class VerseQueryService {
+public class VerseApplicationService {
 
     private final BibleVerseRepository bibleVerseRepository;
-    private final BookQueryService bookQueryService;  // 🆕 Book 도메인 서비스 주입
+    private final BookApplicationService bookApplicationService;  // 🆕 Book 도메인 서비스 주입
+    private final VerseSearchDomainService verseSearchDomainService;
 
     /**
      * 특정 장의 모든 구절 조회 UseCase (완전 도메인 중심)
@@ -55,8 +57,8 @@ public class VerseQueryService {
             throw new IllegalArgumentException("Chapter not found: " + bookName + " " + chapter);
         }
 
-        // 4. BookQueryService로 bookId 조회 (Web Layer 호환성)
-        Integer bookId = bookQueryService.getBookIdByName(book.getBookName().getName()).orElse(null);
+        // 4. BookApplicationService로 bookId 조회 (Web Layer 호환성)
+        Integer bookId = bookApplicationService.getBookIdByName(book.getBookName().getName()).orElse(null);
 
         // 5. DTO 변환 및 반환
         return ChapterQueryDto.of(bookId, book.getBookName().getName(), chapter, verses);
@@ -68,8 +70,8 @@ public class VerseQueryService {
     public VerseQueryDto getVerse(Integer bookId, Integer chapter, Integer verse) {
         log.debug("Getting verse: bookId={}, chapter={}, verse={}", bookId, chapter, verse);
 
-        // 1. BookQueryService로 bookId → bookName 변환 + 검증
-        String bookName = bookQueryService.getBookNameById(bookId);
+        // 1. BookApplicationService로 bookId → bookName 변환 + 검증
+        String bookName = bookApplicationService.getBookNameById(bookId);
 
         // 2. 도메인 중심 메서드 호출
         return getVerseByName(bookName, chapter, verse);
@@ -106,8 +108,8 @@ public class VerseQueryService {
         log.debug("Getting verse range: bookId={}, chapter={}, verses={}-{}",
                  bookId, chapter, fromVerse, toVerse);
 
-        // 1. BookQueryService로 bookId → bookName 변환 + 검증
-        String bookName = bookQueryService.getBookNameById(bookId);
+        // 1. BookApplicationService로 bookId → bookName 변환 + 검증
+        String bookName = bookApplicationService.getBookNameById(bookId);
 
         // 2. 도메인 중심 메서드 호출
         return getVerseRangeByName(bookName, chapter, fromVerse, toVerse);
@@ -136,8 +138,8 @@ public class VerseQueryService {
                     bookName, chapter, startVerse, endVerse);
         }
 
-        // 4. BookQueryService로 bookId 조회 (Web Layer 호환성)
-        Integer bookId = bookQueryService.getBookIdByName(book.getBookName().getName()).orElse(null);
+        // 4. BookApplicationService로 bookId 조회 (Web Layer 호환성)
+        Integer bookId = bookApplicationService.getBookIdByName(book.getBookName().getName()).orElse(null);
 
         // 5. DTO 변환 및 반환
         return VerseRangeQueryDto.of(bookId, chapter, startVerse, endVerse, verses);
@@ -158,17 +160,17 @@ public class VerseQueryService {
 
         String trimmedKeyword = keyword.trim();
 
-        // 2. Domain Repository로 검색
+        // 2. 데이터 조회 (Application Service 역할)
         // TODO: 현재 BibleVerseRepository에 findByTextContaining 메서드 없음
         // 임시로 모든 구절을 조회 후 필터링 (성능상 좋지 않음 - 학습용)
         List<BibleVerse> allVerses = bibleVerseRepository.findAll();
-        List<BibleVerse> matchedVerses = allVerses.stream()
-                .filter(verse -> verse.getContent().getText().contains(trimmedKeyword))
-                .toList();
+        
+        // 3. 도메인 서비스 호출 (비즈니스 로직 위임)
+        List<BibleVerse> matchedVerses = verseSearchDomainService.searchByKeyword(allVerses, trimmedKeyword);
 
         log.info("Found {} verses for keyword: '{}'", matchedVerses.size(), trimmedKeyword);
 
-        // 3. DTO 변환 및 반환
+        // 4. DTO 변환 및 반환 (Application Service 역할)
         return VerseSearchDto.of(trimmedKeyword, matchedVerses);
     }
 
@@ -194,8 +196,8 @@ public class VerseQueryService {
     public List<VerseQueryDto> getBookVerses(Integer bookId) {
         log.debug("Getting book verses: bookId={}", bookId);
 
-        // 1. BookQueryService로 bookId → bookName 변환 + 검증
-        String bookName = bookQueryService.getBookNameById(bookId);
+        // 1. BookApplicationService로 bookId → bookName 변환 + 검증
+        String bookName = bookApplicationService.getBookNameById(bookId);
 
         // 2. 도메인 중심 메서드 호출
         return getBookVersesByName(bookName);
@@ -239,8 +241,8 @@ public class VerseQueryService {
     public ChapterQueryDto getChapterById(Integer bookId, Integer chapter) {
         log.debug("Getting chapter by bookId: bookId={}, chapter={}", bookId, chapter);
 
-        // 1. BookQueryService로 bookId → bookName 변환 + 검증
-        String bookName = bookQueryService.getBookNameById(bookId);
+        // 1. BookApplicationService로 bookId → bookName 변환 + 검증
+        String bookName = bookApplicationService.getBookNameById(bookId);
 
         // 2. 기존 도메인 중심 메서드 재사용
         return getChapter(bookName, chapter);
@@ -254,7 +256,7 @@ public class VerseQueryService {
             throw new IllegalArgumentException("Book name cannot be empty");
         }
 
-        return bookQueryService.getBookDomainByName(bookName.trim())
+        return bookApplicationService.getBookDomainByName(bookName.trim())
                 .orElseThrow(() -> new IllegalArgumentException("Book not found: " + bookName));
     }
 }
