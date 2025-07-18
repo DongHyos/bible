@@ -1,9 +1,12 @@
 package com.dong.bible.web.controller;
 
+import com.dong.bible.application.dto.DailyVerseDetailDto;
+import com.dong.bible.application.dto.DailyVerseSummaryDto;
+import com.dong.bible.application.service.DailyVerseApplicationService;
 import com.dong.bible.common.response.AppResponse;
 import com.dong.bible.web.dto.response.DailyVerseDto;
 import com.dong.bible.web.dto.response.DailyVerseSimpleDto;
-import com.dong.bible.service.DailyVerseService;
+import com.dong.bible.web.mapper.DailyVerseResponseMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -19,7 +22,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DailyVerseController {
 
-    private final DailyVerseService dailyVerseService;
+    private final DailyVerseApplicationService dailyVerseApplicationService;
+    private final DailyVerseResponseMapper dailyVerseResponseMapper;
 
     /**
      * 오늘의 말씀 조회
@@ -29,9 +33,10 @@ public class DailyVerseController {
     public ResponseEntity<AppResponse<DailyVerseDto>> getTodayVerse() {
         log.info("오늘의 말씀 조회 API 호출");
         
-        return ResponseEntity.ok(AppResponse.of(
-                dailyVerseService.getTodayVerse()
-        ));
+        DailyVerseDetailDto dailyVerseDetail = dailyVerseApplicationService.getTodayVerse();
+        DailyVerseDto response = dailyVerseResponseMapper.fromDetailDto(dailyVerseDetail);
+        
+        return ResponseEntity.ok(AppResponse.of(response));
     }
 
     /**
@@ -43,9 +48,10 @@ public class DailyVerseController {
         
         log.info("특정 날짜 오늘의 말씀 조회 API 호출: {}", date);
         
-        return ResponseEntity.ok(AppResponse.of(
-                dailyVerseService.getVerseByDate(date)
-        ));
+        DailyVerseDetailDto dailyVerseDetail = dailyVerseApplicationService.getVerseByDate(date);
+        DailyVerseDto response = dailyVerseResponseMapper.fromDetailDto(dailyVerseDetail);
+        
+        return ResponseEntity.ok(AppResponse.of(response));
     }
 
     /**
@@ -60,9 +66,10 @@ public class DailyVerseController {
         // 최대 30일로 제한
         days = Math.min(days, 30);
         
-        return ResponseEntity.ok(AppResponse.of(
-                dailyVerseService.getRecentVerses(days)
-        ));
+        List<DailyVerseSummaryDto> dailyVerseSummaries = dailyVerseApplicationService.getRecentVerses(days);
+        List<DailyVerseSimpleDto> response = dailyVerseResponseMapper.fromSummaryDtoList(dailyVerseSummaries);
+        
+        return ResponseEntity.ok(AppResponse.of(response));
     }
 
     /**
@@ -77,9 +84,10 @@ public class DailyVerseController {
         // 최대 30일로 제한
         days = Math.min(days, 30);
         
-        return ResponseEntity.ok(AppResponse.of(
-                dailyVerseService.getUpcomingVerses(days)
-        ));
+        List<DailyVerseSummaryDto> dailyVerseSummaries = dailyVerseApplicationService.getUpcomingVerses(days);
+        List<DailyVerseSimpleDto> response = dailyVerseResponseMapper.fromSummaryDtoList(dailyVerseSummaries);
+        
+        return ResponseEntity.ok(AppResponse.of(response));
     }
 
     /**
@@ -92,9 +100,10 @@ public class DailyVerseController {
         
         log.info("{}년 {}월 오늘의 말씀 조회 API 호출", year, month);
         
-        return ResponseEntity.ok(AppResponse.of(
-                dailyVerseService.getVersesByMonth(year, month)
-        ));
+        List<DailyVerseSummaryDto> dailyVerseSummaries = dailyVerseApplicationService.getVersesByMonth(year, month);
+        List<DailyVerseSimpleDto> response = dailyVerseResponseMapper.fromSummaryDtoList(dailyVerseSummaries);
+        
+        return ResponseEntity.ok(AppResponse.of(response));
     }
 
     /**
@@ -106,9 +115,10 @@ public class DailyVerseController {
         
         log.info("현재 월 오늘의 말씀 조회 API 호출: {}년 {}월", now.getYear(), now.getMonthValue());
         
-        return ResponseEntity.ok(AppResponse.of(
-                dailyVerseService.getVersesByMonth(now.getYear(), now.getMonthValue())
-        ));
+        List<DailyVerseSummaryDto> dailyVerseSummaries = dailyVerseApplicationService.getVersesByMonth(now.getYear(), now.getMonthValue());
+        List<DailyVerseSimpleDto> response = dailyVerseResponseMapper.fromSummaryDtoList(dailyVerseSummaries);
+        
+        return ResponseEntity.ok(AppResponse.of(response));
     }
 
     /**
@@ -118,8 +128,9 @@ public class DailyVerseController {
     public ResponseEntity<AppResponse<List<DailyVerseSimpleDto>>> getAllVerses() {
         log.info("모든 오늘의 말씀 조회 API 호출");
         
-        return ResponseEntity.ok(AppResponse.of(
-                dailyVerseService.getAllVerses()
-        ));
+        List<DailyVerseSummaryDto> dailyVerseSummaries = dailyVerseApplicationService.getAllVerses();
+        List<DailyVerseSimpleDto> response = dailyVerseResponseMapper.fromSummaryDtoList(dailyVerseSummaries);
+        
+        return ResponseEntity.ok(AppResponse.of(response));
     }
 }
