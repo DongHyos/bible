@@ -3,7 +3,7 @@ package com.dong.bible.application.service;
 import com.dong.bible.application.dto.SermonDetailDto;
 import com.dong.bible.application.dto.SermonSummaryDto;
 import com.dong.bible.domain.sermon.Sermon;
-import com.dong.bible.domain.sermon.SermonRepository;
+import com.dong.bible.domain.sermon.SermonDomainService;
 import com.dong.bible.domain.sermon.SermonInfo;
 import com.dong.bible.domain.sermon.PastorInfo;
 import com.dong.bible.domain.sermon.SermonStats;
@@ -31,7 +31,7 @@ import static org.mockito.Mockito.*;
 class SermonApplicationServiceTest {
 
     @Mock
-    private SermonRepository sermonRepository;
+    private SermonDomainService sermonDomainService;
 
     @InjectMocks
     private SermonApplicationService sermonApplicationService;
@@ -45,7 +45,7 @@ class SermonApplicationServiceTest {
         // Given
         Long sermonId = 1L;
         Sermon detailSermon = createDetailMockSermon(1L, "은혜의 복음", "김목사", "새싹교회", "설교 내용1");
-        when(sermonRepository.getById(sermonId)).thenReturn(Optional.of(detailSermon));
+        when(sermonDomainService.getSermonById(sermonId)).thenReturn(Optional.of(detailSermon));
 
         // When
         SermonDetailDto result = sermonApplicationService.getSermonById(sermonId);
@@ -58,31 +58,35 @@ class SermonApplicationServiceTest {
         assertThat(result.getChurchName()).isEqualTo("새싹교회");
         assertThat(result.getContent()).isEqualTo("설교 내용1"); // DetailDto는 content 포함
         
-        verify(sermonRepository).getById(sermonId);
+        verify(sermonDomainService).getSermonById(sermonId);
     }
 
     @Test
     void 설교_ID로_상세_조회_ID가_null인_경우_예외() {
+        // Given
+        when(sermonDomainService.getSermonById(null))
+                .thenThrow(new IllegalArgumentException("설교 ID는 null일 수 없습니다"));
+
         // When & Then
         assertThatThrownBy(() -> sermonApplicationService.getSermonById(null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("설교 ID는 null일 수 없습니다");
 
-        verify(sermonRepository, never()).getById(any());
+        verify(sermonDomainService).getSermonById(null);
     }
 
     @Test
     void 설교_ID로_상세_조회_설교가_없는_경우_예외() {
         // Given
         Long sermonId = 999L;
-        when(sermonRepository.getById(sermonId)).thenReturn(Optional.empty());
+        when(sermonDomainService.getSermonById(sermonId)).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> sermonApplicationService.getSermonById(sermonId))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("설교를 찾을 수 없습니다: 999");
 
-        verify(sermonRepository).getById(sermonId);
+        verify(sermonDomainService).getSermonById(sermonId);
     }
 
     // === 구절별 조회 테스트 ===
@@ -97,7 +101,7 @@ class SermonApplicationServiceTest {
         Sermon sermon2 = createSummaryMockSermon(2L, "사랑의 실천", "이목사", "소망교회");
         List<Sermon> sermons = Arrays.asList(sermon1, sermon2);
 
-        when(sermonRepository.findByVerse(bookId, chapter, verse)).thenReturn(sermons);
+        when(sermonDomainService.getSermonsByVerse(bookId, chapter, verse)).thenReturn(sermons);
 
         // When
         List<SermonSummaryDto> result = sermonApplicationService.getSermonsByVerse(bookId, chapter, verse);
@@ -107,12 +111,17 @@ class SermonApplicationServiceTest {
         assertThat(result.get(0).getId()).isEqualTo(1L);
         assertThat(result.get(0).getTitle()).isEqualTo("은혜의 복음");
 
-        verify(sermonRepository).findByVerse(bookId, chapter, verse);
+        verify(sermonDomainService).getSermonsByVerse(bookId, chapter, verse);
     }
 
     @Test
     void 구절별_설교_조회_잘못된_책ID_예외() {
         // When & Then
+        when(sermonDomainService.getSermonsByVerse(null, (short) 1, (short) 1))
+                .thenThrow(new IllegalArgumentException("올바른 책 ID를 입력해주세요"));
+        when(sermonDomainService.getSermonsByVerse(0, (short) 1, (short) 1))
+                .thenThrow(new IllegalArgumentException("올바른 책 ID를 입력해주세요"));
+
         assertThatThrownBy(() -> sermonApplicationService.getSermonsByVerse(null, (short) 1, (short) 1))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("올바른 책 ID를 입력해주세요");
@@ -121,12 +130,18 @@ class SermonApplicationServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("올바른 책 ID를 입력해주세요");
 
-        verify(sermonRepository, never()).findByVerse(any(), any(), any());
+        verify(sermonDomainService).getSermonsByVerse(null, (short) 1, (short) 1);
+        verify(sermonDomainService).getSermonsByVerse(0, (short) 1, (short) 1);
     }
 
     @Test
     void 구절별_설교_조회_잘못된_장번호_예외() {
         // When & Then
+        when(sermonDomainService.getSermonsByVerse(43, null, (short) 1))
+                .thenThrow(new IllegalArgumentException("올바른 장 번호를 입력해주세요"));
+        when(sermonDomainService.getSermonsByVerse(43, (short) 0, (short) 1))
+                .thenThrow(new IllegalArgumentException("올바른 장 번호를 입력해주세요"));
+
         assertThatThrownBy(() -> sermonApplicationService.getSermonsByVerse(43, null, (short) 1))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("올바른 장 번호를 입력해주세요");
@@ -135,12 +150,18 @@ class SermonApplicationServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("올바른 장 번호를 입력해주세요");
 
-        verify(sermonRepository, never()).findByVerse(any(), any(), any());
+        verify(sermonDomainService).getSermonsByVerse(43, null, (short) 1);
+        verify(sermonDomainService).getSermonsByVerse(43, (short) 0, (short) 1);
     }
 
     @Test
     void 구절별_설교_조회_잘못된_절번호_예외() {
         // When & Then
+        when(sermonDomainService.getSermonsByVerse(43, (short) 1, null))
+                .thenThrow(new IllegalArgumentException("올바른 절 번호를 입력해주세요"));
+        when(sermonDomainService.getSermonsByVerse(43, (short) 1, (short) 0))
+                .thenThrow(new IllegalArgumentException("올바른 절 번호를 입력해주세요"));
+
         assertThatThrownBy(() -> sermonApplicationService.getSermonsByVerse(43, (short) 1, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("올바른 절 번호를 입력해주세요");
@@ -149,7 +170,8 @@ class SermonApplicationServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("올바른 절 번호를 입력해주세요");
 
-        verify(sermonRepository, never()).findByVerse(any(), any(), any());
+        verify(sermonDomainService).getSermonsByVerse(43, (short) 1, null);
+        verify(sermonDomainService).getSermonsByVerse(43, (short) 1, (short) 0);
     }
 
     // === 설교자별 조회 테스트 ===
@@ -161,7 +183,7 @@ class SermonApplicationServiceTest {
         Sermon sermon = createSummaryMockSermon(1L, "은혜의 복음", "김목사", "새싹교회");
         List<Sermon> sermons = Arrays.asList(sermon);
 
-        when(sermonRepository.findByPastorNameContaining(pastorName)).thenReturn(sermons);
+        when(sermonDomainService.getSermonsByPastor(pastorName)).thenReturn(sermons);
 
         // When
         List<SermonSummaryDto> result = sermonApplicationService.getSermonsByPastor(pastorName);
@@ -170,12 +192,19 @@ class SermonApplicationServiceTest {
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getPastorName()).isEqualTo("김목사");
 
-        verify(sermonRepository).findByPastorNameContaining(pastorName);
+        verify(sermonDomainService).getSermonsByPastor(pastorName);
     }
 
     @Test
     void 설교자별_설교_조회_빈_이름_예외() {
         // When & Then
+        when(sermonDomainService.getSermonsByPastor(null))
+                .thenThrow(new IllegalArgumentException("설교자명은 비어있을 수 없습니다"));
+        when(sermonDomainService.getSermonsByPastor(""))
+                .thenThrow(new IllegalArgumentException("설교자명은 비어있을 수 없습니다"));
+        when(sermonDomainService.getSermonsByPastor("   "))
+                .thenThrow(new IllegalArgumentException("설교자명은 비어있을 수 없습니다"));
+
         assertThatThrownBy(() -> sermonApplicationService.getSermonsByPastor(null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("설교자명은 비어있을 수 없습니다");
@@ -188,7 +217,9 @@ class SermonApplicationServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("설교자명은 비어있을 수 없습니다");
 
-        verify(sermonRepository, never()).findByPastorNameContaining(any());
+        verify(sermonDomainService).getSermonsByPastor(null);
+        verify(sermonDomainService).getSermonsByPastor("");
+        verify(sermonDomainService).getSermonsByPastor("   ");
     }
 
     // === 교회별 조회 테스트 ===
@@ -200,7 +231,7 @@ class SermonApplicationServiceTest {
         Sermon sermon = createSummaryMockSermon(1L, "은혜의 복음", "김목사", "새싹교회");
         List<Sermon> sermons = Arrays.asList(sermon);
 
-        when(sermonRepository.findByChurchNameContaining(churchName)).thenReturn(sermons);
+        when(sermonDomainService.getSermonsByChurch(churchName)).thenReturn(sermons);
 
         // When
         List<SermonSummaryDto> result = sermonApplicationService.getSermonsByChurch(churchName);
@@ -209,17 +240,20 @@ class SermonApplicationServiceTest {
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getChurchName()).isEqualTo("새싹교회");
 
-        verify(sermonRepository).findByChurchNameContaining(churchName);
+        verify(sermonDomainService).getSermonsByChurch(churchName);
     }
 
     @Test
     void 교회별_설교_조회_빈_이름_예외() {
         // When & Then
+        when(sermonDomainService.getSermonsByChurch(null))
+                .thenThrow(new IllegalArgumentException("교회명은 비어있을 수 없습니다"));
+
         assertThatThrownBy(() -> sermonApplicationService.getSermonsByChurch(null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("교회명은 비어있을 수 없습니다");
 
-        verify(sermonRepository, never()).findByChurchNameContaining(any());
+        verify(sermonDomainService).getSermonsByChurch(null);
     }
 
     // === 제목 검색 테스트 ===
@@ -231,7 +265,7 @@ class SermonApplicationServiceTest {
         Sermon sermon = createSummaryMockSermon(1L, "은혜의 복음", "김목사", "새싹교회");
         List<Sermon> sermons = Arrays.asList(sermon);
 
-        when(sermonRepository.findByTitleContaining(title)).thenReturn(sermons);
+        when(sermonDomainService.searchSermonsByTitle(title)).thenReturn(sermons);
 
         // When
         List<SermonSummaryDto> result = sermonApplicationService.searchSermonsByTitle(title);
@@ -240,17 +274,20 @@ class SermonApplicationServiceTest {
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getTitle()).contains("복음");
 
-        verify(sermonRepository).findByTitleContaining(title);
+        verify(sermonDomainService).searchSermonsByTitle(title);
     }
 
     @Test
     void 제목으로_설교_검색_빈_제목_예외() {
         // When & Then
+        when(sermonDomainService.searchSermonsByTitle(null))
+                .thenThrow(new IllegalArgumentException("검색할 제목은 비어있을 수 없습니다"));
+
         assertThatThrownBy(() -> sermonApplicationService.searchSermonsByTitle(null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("검색할 제목은 비어있을 수 없습니다");
 
-        verify(sermonRepository, never()).findByTitleContaining(any());
+        verify(sermonDomainService).searchSermonsByTitle(null);
     }
 
     // === 인기 설교 조회 테스트 ===
@@ -269,7 +306,7 @@ class SermonApplicationServiceTest {
         
         List<Sermon> popularSermons = Arrays.asList(sermon3, sermon1, sermon2); // 조회수 순
 
-        when(sermonRepository.findTopByViewCount(10)).thenReturn(popularSermons);
+        when(sermonDomainService.getPopularSermons()).thenReturn(popularSermons);
 
         // When
         List<SermonSummaryDto> result = sermonApplicationService.getPopularSermons();
@@ -278,7 +315,7 @@ class SermonApplicationServiceTest {
         assertThat(result).hasSize(3);
         assertThat(result.get(0).getViewCount()).isEqualTo(1200); // 가장 높은 조회수
 
-        verify(sermonRepository).findTopByViewCount(10);
+        verify(sermonDomainService).getPopularSermons();
     }
 
     // === 최신 설교 조회 테스트 ===
@@ -289,9 +326,10 @@ class SermonApplicationServiceTest {
         Sermon sermon1 = createSummaryMockSermon(1L, "은혜의 복음", "김목사", "새싹교회");
         Sermon sermon2 = createSummaryMockSermon(2L, "사랑의 실천", "이목사", "소망교회");
         Sermon sermon3 = createSummaryMockSermon(3L, "믿음의 여정", "박목사", "은혜교회");
+        
         List<Sermon> latestSermons = Arrays.asList(sermon3, sermon2, sermon1); // 날짜 순
 
-        when(sermonRepository.findLatestSermons(10)).thenReturn(latestSermons);
+        when(sermonDomainService.getLatestSermons()).thenReturn(latestSermons);
 
         // When
         List<SermonSummaryDto> result = sermonApplicationService.getLatestSermons();
@@ -300,7 +338,7 @@ class SermonApplicationServiceTest {
         assertThat(result).hasSize(3);
         assertThat(result.get(0).getId()).isEqualTo(3L); // 가장 최신
 
-        verify(sermonRepository).findLatestSermons(10);
+        verify(sermonDomainService).getLatestSermons();
     }
 
     // === 조회수 증가 테스트 ===
@@ -309,56 +347,53 @@ class SermonApplicationServiceTest {
     void 조회수_증가_성공() {
         // Given
         Long sermonId = 1L;
-        when(sermonRepository.exists(sermonId)).thenReturn(true);
 
         // When
         sermonApplicationService.incrementViewCount(sermonId);
 
         // Then
-        verify(sermonRepository).exists(sermonId);
-        verify(sermonRepository).incrementViewCount(sermonId);
+        verify(sermonDomainService).incrementViewCount(sermonId);
     }
 
     @Test
     void 조회수_증가_ID가_null인_경우_예외() {
         // When & Then
+        doThrow(new IllegalArgumentException("설교 ID는 null일 수 없습니다"))
+                .when(sermonDomainService).incrementViewCount(null);
+
         assertThatThrownBy(() -> sermonApplicationService.incrementViewCount(null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("설교 ID는 null일 수 없습니다");
 
-        verify(sermonRepository, never()).exists(any());
-        verify(sermonRepository, never()).incrementViewCount(any());
+        verify(sermonDomainService).incrementViewCount(null);
     }
 
     @Test
     void 조회수_증가_설교가_없는_경우_예외() {
         // Given
         Long sermonId = 999L;
-        when(sermonRepository.exists(sermonId)).thenReturn(false);
+        doThrow(new IllegalArgumentException("설교를 찾을 수 없습니다: 999"))
+                .when(sermonDomainService).incrementViewCount(sermonId);
 
         // When & Then
         assertThatThrownBy(() -> sermonApplicationService.incrementViewCount(sermonId))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("설교를 찾을 수 없습니다: 999");
 
-        verify(sermonRepository).exists(sermonId);
-        verify(sermonRepository, never()).incrementViewCount(any());
+        verify(sermonDomainService).incrementViewCount(sermonId);
     }
 
     @Test
     void 조회수_증가_기능_미구현_경고() {
         // Given
         Long sermonId = 1L;
-        when(sermonRepository.exists(sermonId)).thenReturn(true);
-        doThrow(new UnsupportedOperationException("조회수 증가 기능 미구현"))
-                .when(sermonRepository).incrementViewCount(sermonId);
+        doNothing().when(sermonDomainService).incrementViewCount(sermonId);
 
         // When (예외가 발생하지 않아야 함)
         sermonApplicationService.incrementViewCount(sermonId);
 
         // Then
-        verify(sermonRepository).exists(sermonId);
-        verify(sermonRepository).incrementViewCount(sermonId);
+        verify(sermonDomainService).incrementViewCount(sermonId);
     }
 
     // === 헬퍼 메서드 ===
