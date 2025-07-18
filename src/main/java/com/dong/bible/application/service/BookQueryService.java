@@ -6,6 +6,8 @@ import com.dong.bible.ENUM.Testament;
 import com.dong.bible.domain.book.Book;
 import com.dong.bible.domain.book.BookName;
 import com.dong.bible.domain.book.BookRepository;
+import com.dong.bible.domain.statistics.BibleStatistics;
+import com.dong.bible.domain.statistics.BibleStatisticsDomainService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
 public class BookQueryService {
     
     private final BookRepository bookRepository;
+    private final BibleStatisticsDomainService statisticsDomainService;
     
     // ========================================
     // Public API 메서드들 (모두 Application DTO 반환)
@@ -205,20 +208,22 @@ public class BookQueryService {
     public BibleStatisticsDto getBibleStatistics() {
         log.info("Getting bible statistics");
         
-        List<BookDto> allBooks = getAllBooks();
-        List<BookDto> oldTestamentBooks = getOldTestamentBooks();
-        List<BookDto> newTestamentBooks = getNewTestamentBooks();
+        // 1. 데이터 조회 (Application Service 역할)
+        List<Book> allBooks = bookRepository.findAll();
+        List<Book> oldTestamentBooks = bookRepository.findOldTestamentBooks();
+        List<Book> newTestamentBooks = bookRepository.findNewTestamentBooks();
         
-        // 총 장수 계산 (비즈니스 로직)
-        int totalChapters = allBooks.stream()
-                .mapToInt(BookDto::getTotalChapters)
-                .sum();
+        // 2. 도메인 서비스 호출 (비즈니스 로직 위임)
+        BibleStatistics statistics = statisticsDomainService.calculateStatistics(
+            allBooks, oldTestamentBooks, newTestamentBooks
+        );
         
+        // 3. DTO 변환 (Application Service 역할)
         return BibleStatisticsDto.builder()
-                .totalBooks(allBooks.size())
-                .oldTestamentBooks(oldTestamentBooks.size())
-                .newTestamentBooks(newTestamentBooks.size())
-                .totalChapters(totalChapters)
+                .totalBooks(statistics.getTotalBooks())
+                .oldTestamentBooks(statistics.getOldTestamentBooks())
+                .newTestamentBooks(statistics.getNewTestamentBooks())
+                .totalChapters(statistics.getTotalChapters())
                 .build();
     }
     
