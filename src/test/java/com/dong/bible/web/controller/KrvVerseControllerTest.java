@@ -53,10 +53,10 @@ class KrvVerseControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private VerseApplicationService verseQueryService;
+    private VerseApplicationService verseApplicationService;
 
     @MockitoBean
-    private BookApplicationService bookQueryService;
+    private BookApplicationService bookApplicationService;
 
     @MockitoBean
     private VerseResponseMapper verseResponseMapper;
@@ -117,7 +117,7 @@ class KrvVerseControllerTest {
         ChapterQueryDto chapterQuery = createMockChapterQueryDto(bookId, "요한복음", chapter);
         ChapterDto chapterDto = createMockChapterDto(bookId, "요한복음", chapter);
         
-        when(verseQueryService.getChapterById(bookId, chapter)).thenReturn(chapterQuery);
+        when(verseApplicationService.getChapterById(bookId, chapter)).thenReturn(chapterQuery);
         when(verseResponseMapper.toChapterDto(chapterQuery)).thenReturn(chapterDto);
 
         // When & Then
@@ -145,7 +145,7 @@ class KrvVerseControllerTest {
         VerseDto verseDto = createMockVerseDto(bookId, bookName, chapter, verse);
         
         // Controller에서 getVerse() 호출하므로 이 메서드를 Mock해야 함
-        when(verseQueryService.getVerse(bookId, chapter, verse)).thenReturn(verseQuery);
+        when(verseApplicationService.getVerse(bookId, chapter, verse)).thenReturn(verseQuery);
         when(verseResponseMapper.toVerseDto(verseQuery)).thenReturn(verseDto);
 
         // When & Then
@@ -170,7 +170,7 @@ class KrvVerseControllerTest {
         Integer verse = 16;
         
         // IllegalArgumentException이 던져지도록 Mock 설정 (BizException에서 IllegalArgumentException으로 변경됨)
-        when(verseQueryService.getVerse(bookId, chapter, verse))
+        when(verseApplicationService.getVerse(bookId, chapter, verse))
                 .thenThrow(new BizException(ResponseCode.REQ_BAD_REQUEST, "Book not found with id: " + bookId));
 
         // When & Then
@@ -199,7 +199,7 @@ class KrvVerseControllerTest {
         List<VerseDto> verseDtos = createMockVerseDtoList();
         
         // Controller에서 getVerseRange() 호출하므로 이 메서드를 Mock해야 함
-        when(verseQueryService.getVerseRange(bookId, chapter, fromVerse, toVerse)).thenReturn(rangeQuery);
+        when(verseApplicationService.getVerseRange(bookId, chapter, fromVerse, toVerse)).thenReturn(rangeQuery);
         when(verseResponseMapper.toVerseDto(any(VerseQueryDto.class))).thenReturn(verseDtos.get(0), verseDtos.get(1));
 
         // When & Then
@@ -225,7 +225,7 @@ class KrvVerseControllerTest {
         Integer toVerse = 10;
 
         // IllegalArgumentException이 던져지도록 Mock 설정 (BizException에서 IllegalArgumentException으로 변경됨)
-        when(verseQueryService.getVerseRange(bookId, chapter, fromVerse, toVerse))
+        when(verseApplicationService.getVerseRange(bookId, chapter, fromVerse, toVerse))
                 .thenThrow(new BizException(ResponseCode.REQ_BAD_REQUEST, "시작 절이 끝 절보다 클 수 없습니다"));
 
         // When & Then
@@ -251,7 +251,7 @@ class KrvVerseControllerTest {
         VerseSearchDto searchResult = createMockVerseSearchDto(keyword);
         List<VerseSearchResultDto> searchResultDtos = createMockVerseSearchResultDtoList();
         
-        when(verseQueryService.searchVerses(keyword)).thenReturn(searchResult);
+        when(verseApplicationService.searchVerses(keyword)).thenReturn(searchResult);
         when(verseResponseMapper.toSearchResultDtoList(searchResult)).thenReturn(searchResultDtos);
 
         String requestBody = """
@@ -282,7 +282,7 @@ class KrvVerseControllerTest {
         List<VerseDto> verseDtos = createMockVerseDtoList();
         
         // Controller에서 getBookVerses() 호출하므로 이 메서드를 Mock해야 함
-        when(verseQueryService.getBookVerses(bookId)).thenReturn(verseQueries);
+        when(verseApplicationService.getBookVerses(bookId)).thenReturn(verseQueries);
         when(verseResponseMapper.toVerseDto(any(VerseQueryDto.class))).thenReturn(verseDtos.get(0), verseDtos.get(1));
 
         // When & Then
