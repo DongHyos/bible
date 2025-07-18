@@ -4,12 +4,11 @@ import com.dong.bible.application.dto.ChapterQueryDto;
 import com.dong.bible.application.dto.VerseQueryDto;
 import com.dong.bible.application.dto.VerseRangeQueryDto;
 import com.dong.bible.application.dto.VerseSearchDto;
-import com.dong.bible.common.error.BizException;
-import com.dong.bible.common.response.ResponseCode;
 import com.dong.bible.domain.book.Book;
 import com.dong.bible.domain.verse.BibleVerse;
 import com.dong.bible.domain.verse.BibleVerseRepository;
 import com.dong.bible.domain.verse.VerseReference;
+import com.dong.bible.domain.verse.VerseReferenceRange;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -17,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * 구절 조회 관련 Application Service (UseCase)
@@ -122,14 +120,12 @@ public class VerseQueryService {
         log.debug("Getting verse range: book='{}', chapter={}, verses={}-{}",
                  bookName, chapter, startVerse, endVerse);
 
-        // 1. 입력 검증
-        if (startVerse > endVerse) {
-            throw new IllegalArgumentException("시작 절이 끝 절보다 클 수 없습니다");
-        }
-
-        // 2. Book 도메인 검증
+        // 1. Book 도메인 검증
         Book book = validateAndGetBook(bookName);
         book.validateChapter(chapter);
+
+        // 2. VerseReferenceRange로 범위 검증 (도메인 로직)
+        VerseReferenceRange verseRange = VerseReferenceRange.of(book.getBookName().getName(), chapter, startVerse, endVerse);
 
         // 3. Domain Repository로 구절 범위 조회 (도메인 언어 사용)
         List<BibleVerse> verses = bibleVerseRepository.findByChapterRange(
@@ -246,35 +242,8 @@ public class VerseQueryService {
         // 1. BookQueryService로 bookId → bookName 변환 + 검증
         String bookName = bookQueryService.getBookNameById(bookId);
 
-        // 2. 도메인 중심 메서드 호출
-        return getChapterByName(bookName, chapter);
-    }
-
-    /**
-     * 특정 장의 모든 구절 조회 UseCase (완전 도메인 중심) - 내부 메서드
-     */
-    private ChapterQueryDto getChapterByName(String bookName, Integer chapter) {
-        log.debug("Getting chapter: book='{}', chapter={}", bookName, chapter);
-
-        // 1. 입력 검증 및 Book 도메인 조회
-        Book book = validateAndGetBook(bookName);
-
-        // 2. Book 도메인으로 장 유효성 검증
-        book.validateChapter(chapter);
-
-        // 3. Domain Repository로 구절들 조회 (도메인 언어 사용)
-        List<BibleVerse> verses = bibleVerseRepository.findByChapter(book.getBookName().getName(), chapter);
-
-        if (verses.isEmpty()) {
-            log.warn("No verses found for book='{}', chapter={}", bookName, chapter);
-            throw new IllegalArgumentException("Chapter not found: " + bookName + " " + chapter);
-        }
-
-        // 4. BookQueryService로 bookId 조회 (Web Layer 호환성)
-        Integer bookId = bookQueryService.getBookIdByName(book.getBookName().getName()).orElse(null);
-
-        // 5. DTO 변환 및 반환
-        return ChapterQueryDto.of(bookId, book.getBookName().getName(), chapter, verses);
+        // 2. 기존 도메인 중심 메서드 재사용
+        return getChapter(bookName, chapter);
     }
 
     /**
@@ -285,7 +254,7 @@ public class VerseQueryService {
             throw new IllegalArgumentException("Book name cannot be empty");
         }
 
-        return bookQueryService.getBookByName(bookName.trim())
+        return bookQueryService.getBookDomainByName(bookName.trim())
                 .orElseThrow(() -> new IllegalArgumentException("Book not found: " + bookName));
     }
 }

@@ -3,7 +3,7 @@ package com.dong.bible.infrastructure.persistence.mapper;
 import com.dong.bible.ENUM.Testament;
 import com.dong.bible.domain.book.Book;
 import com.dong.bible.domain.book.BookName;
-import com.dong.bible.infrastructure.persistence.entity.KrvBook;
+import com.dong.bible.infrastructure.persistence.entity.KrvBookEntity;
 import org.springframework.stereotype.Component;
 
 /**
@@ -16,14 +16,14 @@ public class BookMapper {
     /**
      * Domain Book을 Infrastructure Entity로 변환 (저장용)
      * @param book 도메인 Book 객체
-     * @return KrvBook Infrastructure 엔티티
+     * @return KrvBookEntity Infrastructure 엔티티
      */
-    public KrvBook toEntity(Book book) {
+    public KrvBookEntity toEntity(Book book) {
         if (book == null) {
             return null;
         }
         
-        return KrvBook.builder()
+        return KrvBookEntity.builder()
                 .id(book.getId() != null ? book.getId().intValue() : null)
                 .name(book.getBookName().getName())
                 .abbr(book.getAbbreviation())
@@ -36,10 +36,10 @@ public class BookMapper {
     
     /**
      * Infrastructure Entity를 Domain Book으로 변환 (조회용)
-     * @param entity KrvBook Infrastructure 엔티티
+     * @param entity KrvBookEntity Infrastructure 엔티티
      * @return Book 도메인 객체
      */
-    public Book toDomain(KrvBook entity) {
+    public Book toDomain(KrvBookEntity entity) {
         if (entity == null) {
             return null;
         }

@@ -1,10 +1,11 @@
 package com.dong.bible.web.controller;
 
+import com.dong.bible.application.dto.BibleStatisticsDto;
+import com.dong.bible.application.dto.BookDto;
 import com.dong.bible.application.service.BookQueryService;
 import com.dong.bible.common.response.AppResponse;
-import com.dong.bible.domain.book.Book;
-import com.dong.bible.ENUM.Testament;
 import com.dong.bible.web.dto.response.BibleBookDto;
+import com.dong.bible.web.mapper.BookResponseMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -13,17 +14,15 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * 성경책 조회 REST Controller
- *
- * DDD 구조 적용:
- * - BookQueryService 활용
- * - 도메인 객체를 Web DTO로 변환
+ * DDD 구조 완전 적용:
+ * - BookQueryService에서 Application DTO 반환
+ * - BookResponseMapper로 Application DTO → Web DTO 변환
+ * - Controller는 HTTP 처리만 담당
  */
 @RestController
 @RequestMapping("/api/bible")
@@ -32,6 +31,7 @@ import java.util.stream.Collectors;
 public class KrvBookController {
 
     private final BookQueryService bookQueryService;
+    private final BookResponseMapper bookResponseMapper;
 
     /**
      * 전체 성경 목록
@@ -40,29 +40,21 @@ public class KrvBookController {
     @GetMapping("/books")
     public ResponseEntity<AppResponse<List<BibleBookDto>>> getAllBooks() {
         log.info("Getting all books");
-
-        List<Book> books = bookQueryService.getAllBooks();
-        List<BibleBookDto> response = books.stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
-
+        List<BookDto> books = bookQueryService.getAllBooks();
+        List<BibleBookDto> response = bookResponseMapper.fromBookDtoList(books);
         return ResponseEntity.ok(AppResponse.of(response));
     }
 
     /**
-     * 구약/신약별 조회
-     * GET /api/bible/books/구약 또는 GET /api/bible/books/신약
+     * 구약/신약별 조회 (경로 충돌 해결)
+     * GET /api/bible/books/testament/구약 또는 GET /api/bible/books/testament/신약
      */
-    @GetMapping("/books/{testament}")
+    @GetMapping("/books/testament/{testament}")
     public ResponseEntity<AppResponse<List<BibleBookDto>>> getBooksByTestament(
             @PathVariable String testament) {
         log.info("Getting books by testament: {}", testament);
-
-        List<Book> books = bookQueryService.getBooksByTestament(testament); // String 그대로 넘김
-        List<BibleBookDto> response = books.stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
-
+        List<BookDto> books = bookQueryService.getBooksByTestament(testament);
+        List<BibleBookDto> response = bookResponseMapper.fromBookDtoList(books);
         return ResponseEntity.ok(AppResponse.of(response));
     }
 
@@ -71,12 +63,10 @@ public class KrvBookController {
      * GET /api/bible/books/1 (창세기)
      */
     @GetMapping("/books/{id}")
-    public ResponseEntity<AppResponse<BibleBookDto>> findById(@PathVariable Integer id) {
+    public ResponseEntity<AppResponse<BibleBookDto>> getBookById(@PathVariable Integer id) {
         log.info("Getting book by id: {}", id);
-
-        Book book = bookQueryService.getBookById(id); // 예외는 Service에서 처리
-        BibleBookDto response = toDto(book);
-
+        BookDto book = bookQueryService.getBookById(id);
+        BibleBookDto response = bookResponseMapper.fromBookDto(book);
         return ResponseEntity.ok(AppResponse.of(response));
     }
 
@@ -87,15 +77,9 @@ public class KrvBookController {
     @GetMapping("/books/grouped")
     public ResponseEntity<AppResponse<Map<String, List<BibleBookDto>>>> getBooksByTestamentGrouped() {
         log.info("Getting books grouped by testament");
-
-        List<Book> oldTestamentBooks = bookQueryService.getOldTestamentBooks();
-        List<Book> newTestamentBooks = bookQueryService.getNewTestamentBooks();
-
-        Map<String, List<BibleBookDto>> grouped = new HashMap<>();
-        grouped.put("구약", oldTestamentBooks.stream().map(this::toDto).collect(Collectors.toList()));
-        grouped.put("신약", newTestamentBooks.stream().map(this::toDto).collect(Collectors.toList()));
-
-        return ResponseEntity.ok(AppResponse.of(grouped));
+        Map<String, List<BookDto>> groupedBooks = bookQueryService.getGroupedBooksByTestament();
+        Map<String, List<BibleBookDto>> response = bookResponseMapper.fromGroupedBooks(groupedBooks);
+        return ResponseEntity.ok(AppResponse.of(response));
     }
 
     /**
@@ -105,39 +89,8 @@ public class KrvBookController {
     @GetMapping("/books/statistics")
     public ResponseEntity<AppResponse<Map<String, Integer>>> getBibleStatistics() {
         log.info("Getting bible statistics");
-
-        long totalBooks = bookQueryService.getTotalBookCount();
-        List<Book> oldTestamentBooks = bookQueryService.getOldTestamentBooks();
-        List<Book> newTestamentBooks = bookQueryService.getNewTestamentBooks();
-
-        Map<String, Integer> statistics = new HashMap<>();
-        statistics.put("totalBooks", (int) totalBooks);
-        statistics.put("oldTestamentBooks", oldTestamentBooks.size());
-        statistics.put("newTestamentBooks", newTestamentBooks.size());
-
-        // 총 장수 계산
-        int totalChapters = bookQueryService.getAllBooks().stream()
-                .mapToInt(Book::getTotalChapters)
-                .sum();
-        statistics.put("totalChapters", totalChapters);
-
-        return ResponseEntity.ok(AppResponse.of(statistics));
-    }
-
-    /**
-     * Domain Book → Web BibleBookDto 변환
-     */
-    private BibleBookDto toDto(Book book) {
-        BibleBookDto dto = new BibleBookDto();
-        dto.setId(book.getId() != null ? book.getId().intValue() : null);
-        dto.setName(book.getBookName().getName());
-        dto.setAbbr(book.getAbbreviation());
-        dto.setTestament(book.getTestament() == Testament.신약 ? "신약" : "구약");
-        dto.setBookOrder(book.getBookOrder());
-        dto.setChapters(book.getTotalChapters());
-
-        // TODO: category, totalVerses 등은 필요시 추가 구현
-
-        return dto;
+        BibleStatisticsDto statistics = bookQueryService.getBibleStatistics();
+        Map<String, Integer> response = bookResponseMapper.fromStatisticsDto(statistics);
+        return ResponseEntity.ok(AppResponse.of(response));
     }
 }

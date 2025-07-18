@@ -3,8 +3,8 @@ package com.dong.bible.infrastructure.persistence.mapper;
 import com.dong.bible.domain.verse.BibleVerse;
 import com.dong.bible.domain.verse.VerseContent;
 import com.dong.bible.domain.verse.VerseReference;
-import com.dong.bible.infrastructure.persistence.entity.KrvBook;
-import com.dong.bible.infrastructure.persistence.entity.KrvVerse;
+import com.dong.bible.infrastructure.persistence.entity.KrvBookEntity;
+import com.dong.bible.infrastructure.persistence.entity.KrvVerseEntity;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -16,16 +16,16 @@ import java.util.stream.Collectors;
 public class VerseMapper {
 
     /**
-     * KrvVerse Entity → BibleVerse Domain 변환
+     * KrvVerseEntity Entity → BibleVerse Domain 변환
      */
-    public BibleVerse toDomain(KrvVerse entity) {
+    public BibleVerse toDomain(KrvVerseEntity entity) {
         if (entity == null) {
-            log.warn("KrvVerse entity is null");
+            log.warn("KrvVerseEntity entity is null");
             return null;
         }
 
         if (entity.getBook() == null) {
-            log.warn("KrvVerse.book is null for verse id: {}", entity.getId());
+            log.warn("KrvVerseEntity.book is null for verse id: {}", entity.getId());
             return null;
         }
 
@@ -46,25 +46,25 @@ public class VerseMapper {
             return BibleVerse.of(domainId, reference, content);
 
         } catch (Exception e) {
-            log.error("Failed to convert KrvVerse to BibleVerse. Entity: {}", entity, e);
+            log.error("Failed to convert KrvVerseEntity to BibleVerse. Entity: {}", entity, e);
             throw new RuntimeException("Entity to Domain conversion failed", e);
         }
     }
 
     /**
-     * BibleVerse Domain → KrvVerse Entity 변환
+     * BibleVerse Domain → KrvVerseEntity Entity 변환
      *
      * @param domain BibleVerse 도메인 객체
-     * @param book 연관된 KrvBook 엔티티 (별도로 조회해서 전달)
+     * @param book 연관된 KrvBookEntity 엔티티 (별도로 조회해서 전달)
      */
-    public KrvVerse toEntity(BibleVerse domain, KrvBook book) {
+    public KrvVerseEntity toEntity(BibleVerse domain, KrvBookEntity book) {
         if (domain == null) {
             log.warn("BibleVerse domain is null");
             return null;
         }
 
         if (book == null) {
-            log.warn("KrvBook is null for verse: {}", domain.toReferenceString());
+            log.warn("KrvBookEntity is null for verse: {}", domain.toReferenceString());
             throw new IllegalArgumentException("Book cannot be null when converting to entity");
         }
 
@@ -81,7 +81,7 @@ public class VerseMapper {
             // ID 타입 변환: Long → Integer
             Integer entityId = domain.getId() != null ? domain.getId().intValue() : null;
 
-            return KrvVerse.builder()
+            return KrvVerseEntity.builder()
                     .id(entityId)
                     .book(book)
                     .chapter(domain.getReference().getChapter())
@@ -91,15 +91,15 @@ public class VerseMapper {
                     .build();
 
         } catch (Exception e) {
-            log.error("Failed to convert BibleVerse to KrvVerse. Domain: {}", domain.toReferenceString(), e);
+            log.error("Failed to convert BibleVerse to KrvVerseEntity. Domain: {}", domain.toReferenceString(), e);
             throw new RuntimeException("Domain to Entity conversion failed", e);
         }
     }
 
     /**
-     * List<KrvVerse> → List<BibleVerse> 변환
+     * List<KrvVerseEntity> → List<BibleVerse> 변환
      */
-    public List<BibleVerse> toDomainList(List<KrvVerse> entities) {
+    public List<BibleVerse> toDomainList(List<KrvVerseEntity> entities) {
         if (entities == null) {
             return List.of();
         }
@@ -111,12 +111,12 @@ public class VerseMapper {
     }
 
     /**
-     * List<BibleVerse> → List<KrvVerse> 변환
+     * List<BibleVerse> → List<KrvVerseEntity> 변환
      *
      * @param domains BibleVerse 도메인 객체들
      * @param book 모든 구절이 속한 공통 책 (같은 책의 구절들일 때 사용)
      */
-    public List<KrvVerse> toEntityList(List<BibleVerse> domains, KrvBook book) {
+    public List<KrvVerseEntity> toEntityList(List<BibleVerse> domains, KrvBookEntity book) {
         if (domains == null) {
             return List.of();
         }
@@ -130,7 +130,7 @@ public class VerseMapper {
     /**
      * 디버깅용 헬퍼 메서드
      */
-    public void logMappingInfo(KrvVerse entity, BibleVerse domain) {
+    public void logMappingInfo(KrvVerseEntity entity, BibleVerse domain) {
         log.debug("Mapping Info:");
         log.debug("  Entity: id={}, book={}, chapter={}, verse={}, text='{}'",
                 entity.getId(),

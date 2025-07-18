@@ -1,9 +1,13 @@
 package com.dong.bible.web.controller;
 
+import com.dong.bible.application.dto.BibleCategoryDto;
+import com.dong.bible.application.dto.BookDto;
+import com.dong.bible.application.service.BibleCategoryApplicationService;
 import com.dong.bible.common.response.AppResponse;
 import com.dong.bible.web.dto.response.BibleBookDto;
-import com.dong.bible.web.dto.response.BibleCategoryDto;
-import com.dong.bible.service.BibleCategoryService;
+import com.dong.bible.web.dto.response.BibleCategoryResponse;
+import com.dong.bible.web.mapper.BibleCategoryResponseMapper;
+import com.dong.bible.web.mapper.BookResponseMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -21,23 +25,31 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class BibleCategoryController {
     
-    private final BibleCategoryService bibleCategoryService;
+    private final BibleCategoryApplicationService bibleCategoryApplicationService;
+    private final BibleCategoryResponseMapper categoryResponseMapper;
+    private final BookResponseMapper bookResponseMapper;
     
     // 구약/신약별 분류 조회
     @GetMapping("/categories/{testament}")
-    public ResponseEntity<AppResponse<List<BibleCategoryDto>>> getCategoriesByTestament(@PathVariable String testament) {
-        return ResponseEntity.ok(AppResponse.of(bibleCategoryService.getCategoriesByTestament(testament)));
+    public ResponseEntity<AppResponse<List<BibleCategoryResponse>>> getCategoriesByTestament(@PathVariable String testament) {
+        List<BibleCategoryDto> categories = bibleCategoryApplicationService.getCategoriesByTestament(testament);
+        List<BibleCategoryResponse> responses = categoryResponseMapper.fromApplicationDtoList(categories);
+        return ResponseEntity.ok(AppResponse.of(responses));
     }
     
     // 전체 성경 구조 (분류별) - 목차용 최고 추천!
     @GetMapping("/structure")
-    public ResponseEntity<AppResponse<Map<String, List<BibleCategoryDto>>>> getBibleStructure() {
-        return ResponseEntity.ok(AppResponse.of(bibleCategoryService.getBibleStructure()));
+    public ResponseEntity<AppResponse<Map<String, List<BibleCategoryResponse>>>> getBibleStructure() {
+        Map<String, List<BibleCategoryDto>> structure = bibleCategoryApplicationService.getBibleStructure();
+        Map<String, List<BibleCategoryResponse>> responses = categoryResponseMapper.fromApplicationDtoMap(structure);
+        return ResponseEntity.ok(AppResponse.of(responses));
     }
     
     // 특정 분류의 책들
     @GetMapping("/categories/{categoryId}/books")
     public ResponseEntity<AppResponse<List<BibleBookDto>>> getBooksByCategory(@PathVariable Integer categoryId) {
-        return ResponseEntity.ok(AppResponse.of(bibleCategoryService.getBooksByCategory(categoryId)));
+        List<BookDto> books = bibleCategoryApplicationService.getBooksByCategory(categoryId);
+        List<BibleBookDto> responses = bookResponseMapper.fromBookDtoList(books);
+        return ResponseEntity.ok(AppResponse.of(responses));
     }
 }

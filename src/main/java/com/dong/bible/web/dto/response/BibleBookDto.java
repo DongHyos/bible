@@ -1,11 +1,13 @@
 package com.dong.bible.web.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.Data;
+import lombok.Builder;
+import lombok.Getter;
 
 import java.time.LocalDateTime;
 
-@Data
+@Getter
+@Builder
 public class BibleBookDto {
     private Integer id;
     private String name;
@@ -13,6 +15,8 @@ public class BibleBookDto {
     private String testament;
     private Integer bookOrder;
     private Integer chapters;
+    private Integer categoryId;
+    private String categoryName;
 
     // 선택적 포함 필드들
     @JsonInclude(JsonInclude.Include.NON_NULL)

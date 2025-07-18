@@ -1,133 +1,145 @@
 package com.dong.bible.application.service;
 
+import com.dong.bible.application.dto.BookDto;
+import com.dong.bible.application.dto.BibleStatisticsDto;
 import com.dong.bible.ENUM.Testament;
 import com.dong.bible.domain.book.Book;
 import com.dong.bible.domain.book.BookName;
 import com.dong.bible.domain.book.BookRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * 성경책 조회를 담당하는 Application Service
- * VerseQueryService에서 bookId ↔ bookName 변환 시 사용됩니다.
- * 순수 DDD 원칙에 따라 Domain Repository를 조합하여 유스케이스를 구현합니다.
+ * Application DTO를 반환하여 계층별 책임을 분리합니다.
+ * 도메인 로직은 도메인 객체에서 처리하고, Application은 조합만 담당합니다.
  */
 @Service
+@Slf4j
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class BookQueryService {
     
     private final BookRepository bookRepository;
     
+    // ========================================
+    // Public API 메서드들 (모두 Application DTO 반환)
+    // ========================================
+    
+    /**
+     * 모든 성경책 조회 (순서대로)
+     * Use Case: 성경책 목록 페이지 표시
+     */
+    public List<BookDto> getAllBooks() {
+        List<Book> books = bookRepository.findAll();
+        return books.stream()
+                .map(BookDto::from)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * DB ID로 Book 조회
+     * Use Case: 성경책 상세 페이지 표시 + VerseQueryService 지원
+     */
+    public BookDto getBookById(Integer bookId) {
+        if (bookId == null) {
+            throw new IllegalArgumentException("Book id must not be null");
+        }
+
+        Book book = findBookByIdDomain(bookId);
+        return BookDto.from(book);
+    }
+    
     /**
      * 성경책 이름으로 Book 조회
-     * @param bookName 성경책 이름
-     * @return Book 도메인 객체
+     * Use Case: VerseQueryService 지원 + 검색 기능
      */
-    public Optional<Book> getBookByName(String bookName) {
+    public Optional<BookDto> getBookByName(String bookName) {
         if (bookName == null || bookName.trim().isEmpty()) {
             return Optional.empty();
         }
         
-        return bookRepository.findByName(bookName.trim());
+        return getBookByNameDomain(bookName)
+                .map(BookDto::from);
     }
     
     /**
      * BookName Value Object로 Book 조회
-     * @param bookName BookName Value Object
-     * @return Book 도메인 객체
+     * Use Case: VerseQueryService 지원
      */
-    public Optional<Book> getBookByName(BookName bookName) {
+    public Optional<BookDto> getBookByName(BookName bookName) {
         if (bookName == null) {
             return Optional.empty();
         }
         
-        return bookRepository.findByName(bookName);
+        return bookRepository.findByName(bookName)
+                .map(BookDto::from);
     }
     
     /**
-     * 성경책 이름으로 DB ID 조회 (VerseQueryService 지원용)
-     * Infrastructure의 기술적 ID를 Domain Service에서 제공
-     * @param bookName 성경책 이름
-     * @return DB의 기술적 ID (krv_books.id)
+     * 성경책 이름으로 DB ID 조회
+     * Use Case: VerseQueryService 지원
      */
     public Optional<Integer> getBookIdByName(String bookName) {
-        return getBookByName(bookName)
+        return getBookByNameDomain(bookName)
                 .map(Book::getId)
                 .map(Long::intValue);
     }
 
     /**
-     * DB ID로 Book 조회 (Web Layer에서 사용)
-     * @param bookId DB의 기술적 ID
-     * @return Book 도메인 객체
-     */
-    public Book getBookById(Integer bookId) {
-        if (bookId == null) {
-            throw new IllegalArgumentException("Book id must not be null");
-        }
-
-        // 현재 순수 DDD Repository는 ID 조회를 지원하지 않음
-        // 모든 Book을 조회해서 ID로 필터링 (학습용이므로 성능은 무시)
-        return bookRepository.findAll()
-                .stream()
-                .filter(book -> book.getId() != null && book.getId().equals(bookId.longValue()))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Book not found with id: " + bookId));
-    }
-
-    /**
-     * DB ID로 성경책 이름 조회 (VerseQueryService 지원용)
-     * @param bookId DB의 기술적 ID
-     * @return 성경책 이름
+     * DB ID로 성경책 이름 조회
+     * Use Case: VerseQueryService 지원
      */
     public String getBookNameById(Integer bookId) {
-        Book book = getBookById(bookId); // 여기서 예외 발생 가능
+        Book book = findBookByIdDomain(bookId); // 여기서 예외 발생 가능
         return book.getBookName().getName();
     }
     
     /**
-     * 모든 성경책 조회 (순서대로)
-     * @return 66권 성경책 전체
-     */
-    public List<Book> getAllBooks() {
-        return bookRepository.findAll();
-    }
-    
-    /**
      * 신구약별 성경책 조회
-     * @param testament 신약/구약 구분
-     * @return 해당 신구약의 성경책들
+     * Use Case: 신구약별 성경책 목록 페이지 표시
      */
-    public List<Book> getBooksByTestament(String testament) {
-        Testament testamentEnum = Testament.fromString(testament); // 변환 및 검증 책임
-        return bookRepository.findByTestament(testamentEnum);
+    public List<BookDto> getBooksByTestament(String testament) {
+        Testament testamentEnum = Testament.fromString(testament);
+        List<Book> books = bookRepository.findByTestament(testamentEnum);
+        return books.stream()
+                .map(BookDto::from)
+                .collect(Collectors.toList());
     }
     
     /**
      * 구약 성경책 목록 조회
-     * @return 구약 39권
+     * Use Case: 구약 성경책 목록 페이지 표시
      */
-    public List<Book> getOldTestamentBooks() {
-        return bookRepository.findOldTestamentBooks();
+    public List<BookDto> getOldTestamentBooks() {
+        List<Book> books = bookRepository.findOldTestamentBooks();
+        return books.stream()
+                .map(BookDto::from)
+                .collect(Collectors.toList());
     }
     
     /**
      * 신약 성경책 목록 조회
-     * @return 신약 27권
+     * Use Case: 신약 성경책 목록 페이지 표시
      */
-    public List<Book> getNewTestamentBooks() {
-        return bookRepository.findNewTestamentBooks();
+    public List<BookDto> getNewTestamentBooks() {
+        List<Book> books = bookRepository.findNewTestamentBooks();
+        return books.stream()
+                .map(BookDto::from)
+                .collect(Collectors.toList());
     }
     
     /**
      * 성경책 존재 여부 확인
-     * @param bookName 성경책 이름
-     * @return 존재하면 true
+     * Use Case: VerseQueryService 지원 + 검증
      */
     public boolean existsBook(String bookName) {
         if (bookName == null || bookName.trim().isEmpty()) {
@@ -138,37 +150,109 @@ public class BookQueryService {
             BookName bookNameObj = BookName.of(bookName.trim());
             return bookRepository.existsByName(bookNameObj);
         } catch (IllegalArgumentException e) {
-            return false; // 유효하지 않은 성경책 이름
+            return false;
         }
     }
     
     /**
      * 특정 장이 유효한지 검증
-     * @param bookName 성경책 이름
-     * @param chapter 장 번호
-     * @return 유효하면 true
+     * Use Case: VerseQueryService 지원 + 검증
      */
     public boolean isValidChapter(String bookName, int chapter) {
-        return getBookByName(bookName)
-                .map(book -> book.hasChapter(chapter))
+        return getBookByNameDomain(bookName)
+                .map(book -> book.hasChapter(chapter))  // ✅ 도메인 로직 사용
                 .orElse(false);
     }
     
     /**
      * 성경책의 총 장수 조회
-     * @param bookName 성경책 이름
-     * @return 총 장수
+     * Use Case: VerseQueryService 지원 + 통계
      */
     public Optional<Integer> getTotalChapters(String bookName) {
-        return getBookByName(bookName)
-                .map(Book::getTotalChapters);
+        return getBookByNameDomain(bookName)
+                .map(Book::getTotalChapters);  // ✅ 도메인 메서드 사용
     }
     
     /**
      * 전체 성경책 개수 (66권 확인용)
-     * @return 성경책 총 개수
+     * Use Case: 성경책 통계 표시
      */
     public long getTotalBookCount() {
         return bookRepository.count();
+    }
+    
+    /**
+     * 신구약별 그룹핑된 성경책 조회
+     * Use Case: 프론트엔드 탭 구성용 데이터 제공
+     */
+    public Map<String, List<BookDto>> getGroupedBooksByTestament() {
+        log.info("Getting books grouped by testament");
+        
+        List<BookDto> oldTestamentBooks = getOldTestamentBooks();
+        List<BookDto> newTestamentBooks = getNewTestamentBooks();
+        
+        Map<String, List<BookDto>> grouped = new HashMap<>();
+        grouped.put("구약", oldTestamentBooks);
+        grouped.put("신약", newTestamentBooks);
+        
+        return grouped;
+    }
+
+    /**
+     * 성경 통계 정보 조회
+     * Use Case: 성경 통계 대시보드 표시
+     */
+    public BibleStatisticsDto getBibleStatistics() {
+        log.info("Getting bible statistics");
+        
+        List<BookDto> allBooks = getAllBooks();
+        List<BookDto> oldTestamentBooks = getOldTestamentBooks();
+        List<BookDto> newTestamentBooks = getNewTestamentBooks();
+        
+        // 총 장수 계산 (비즈니스 로직)
+        int totalChapters = allBooks.stream()
+                .mapToInt(BookDto::getTotalChapters)
+                .sum();
+        
+        return BibleStatisticsDto.builder()
+                .totalBooks(allBooks.size())
+                .oldTestamentBooks(oldTestamentBooks.size())
+                .newTestamentBooks(newTestamentBooks.size())
+                .totalChapters(totalChapters)
+                .build();
+    }
+    
+    // ========================================
+    // Service 간 호출용 메서드들 (도메인 객체 반환)
+    // ========================================
+    
+    /**
+     * Service 간 호출용: 도메인 객체 반환
+     * VerseQueryService에서 도메인 로직 호출을 위해 필요
+     */
+    public Optional<Book> getBookDomainByName(String bookName) {
+        return getBookByNameDomain(bookName);
+    }
+    
+    // ========================================
+    // Private 헬퍼 메서드들 (도메인 객체 조회)
+    // ========================================
+    
+    /**
+     * DB ID로 도메인 객체 조회
+     */
+    private Book findBookByIdDomain(Integer bookId) {
+        return bookRepository.findAll()
+                .stream()
+                .filter(book -> book.getId() != null && book.getId().equals(bookId.longValue()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Book not found with id: " + bookId));
+    }
+    
+    /**
+     * 성경책 이름으로 도메인 객체 조회
+     */
+    private Optional<Book> getBookByNameDomain(String bookName) {
+        return bookRepository.findByName(bookName.trim());
     }
 }
