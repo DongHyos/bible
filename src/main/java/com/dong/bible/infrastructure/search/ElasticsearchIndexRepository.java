@@ -65,7 +65,12 @@ public class ElasticsearchIndexRepository {
                 throw new RuntimeException("타겟 인덱스가 존재하지 않습니다: " + targetIndex);
             }
             
-            // TODO: 실제 reindex 로직 구현
+            // Reindex API 요청 생성
+            String reindexRequest = createReindexRequest(sourceIndex, targetIndex);
+            
+            // ElasticSearch Rest Client를 통한 Reindex API 호출
+            executeReindexRequest(reindexRequest);
+            
             log.info("리인덱싱 완료: {} -> {}", sourceIndex, targetIndex);
             
         } catch (Exception e) {
@@ -187,5 +192,62 @@ public class ElasticsearchIndexRepository {
                 ),
                 "displayReference", Map.of("type", "keyword")
             ));
+    }
+
+    /**
+     * Reindex API 요청을 위한 JSON 생성
+     */
+    private String createReindexRequest(String sourceIndex, String targetIndex) {
+        return String.format("""
+            {
+              "source": {
+                "index": "%s"
+              },
+              "dest": {
+                "index": "%s"
+              },
+              "conflicts": "proceed"
+            }
+            """, sourceIndex, targetIndex);
+    }
+
+    /**
+     * ElasticSearch Reindex API 실행
+     */
+    private void executeReindexRequest(String reindexRequestBody) {
+        try {
+            log.info("Reindex 요청 시작 - 요청 본문: {}", reindexRequestBody);
+            
+            // ElasticSearch 클라이언트를 통한 HTTP 요청
+            var restTemplate = new org.springframework.web.client.RestTemplate();
+            var headers = new org.springframework.http.HttpHeaders();
+            headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+            
+            var requestEntity = new org.springframework.http.HttpEntity<>(reindexRequestBody, headers);
+            
+            log.info("HTTP 요청 전송 중 - URL: http://localhost:9200/_reindex?wait_for_completion=true");
+            
+            // Reindex API 호출
+            var response = restTemplate.postForEntity(
+                "http://localhost:9200/_reindex?wait_for_completion=true", 
+                requestEntity, 
+                String.class
+            );
+            
+            log.info("HTTP 응답 상태: {}", response.getStatusCode());
+            
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                log.error("Reindex API 호출 실패 - 상태 코드: {}, 응답: {}", 
+                    response.getStatusCode(), response.getBody());
+                throw new RuntimeException("Reindex API 호출 실패: " + response.getStatusCode());
+            }
+            
+            log.info("Reindex API 성공 - 응답: {}", response.getBody());
+            
+        } catch (Exception e) {
+            log.error("Reindex API 실행 중 오류 발생 - 예외 타입: {}, 메시지: {}", 
+                e.getClass().getSimpleName(), e.getMessage(), e);
+            throw new RuntimeException("Reindex 실행 실패: " + e.getMessage());
+        }
     }
 }

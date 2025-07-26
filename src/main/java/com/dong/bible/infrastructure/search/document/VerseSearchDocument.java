@@ -14,7 +14,7 @@ import org.springframework.data.elasticsearch.annotations.FieldType;
  * ElasticSearch용 성경 구절 검색 Document
  * Infrastructure Layer - 검색 기술 구현을 담당
  */
-@Document(indexName = "bible_verses")
+@Document(indexName = "bible_verses_target")
 @Getter
 @Builder
 @NoArgsConstructor
