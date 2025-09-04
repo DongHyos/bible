@@ -1,15 +1,16 @@
 package com.dong.bible.web.controller;
 
 import com.dong.bible.application.service.VerseApplicationService;
-import com.dong.bible.application.dto.ChapterQueryDto;
-import com.dong.bible.application.dto.VerseQueryDto;
-import com.dong.bible.application.dto.VerseRangeQueryDto;
-import com.dong.bible.application.dto.VerseSearchDto;
+import com.dong.bible.application.dto.command.*;
+import com.dong.bible.application.dto.query.ChapterQuery;
+import com.dong.bible.application.dto.query.VerseQuery;
+import com.dong.bible.application.dto.query.VerseRangeQuery;
+import com.dong.bible.application.dto.query.VerseSearchQuery;
 import com.dong.bible.common.response.AppResponse;
-import com.dong.bible.web.dto.request.SearchRequestDto;
-import com.dong.bible.web.dto.response.ChapterDto;
-import com.dong.bible.web.dto.response.VerseDto;
-import com.dong.bible.web.dto.response.VerseSearchResultDto;
+import com.dong.bible.web.dto.request.SearchRequest;
+import com.dong.bible.web.dto.response.ChapterResponse;
+import com.dong.bible.web.dto.response.VerseResponse;
+import com.dong.bible.web.dto.response.VerseSearchResponse;
 import com.dong.bible.web.mapper.VerseResponseMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,15 +43,15 @@ public class KrvVerseController {
      * GET /api/bible/books/43/chapters/3
      */
     @GetMapping("/books/{bookId}/chapters/{chapter}")
-    public ResponseEntity<AppResponse<ChapterDto>> getChapter(
+    public ResponseEntity<AppResponse<ChapterResponse>> getChapter(
             @PathVariable Integer bookId,
             @PathVariable Integer chapter) {
         
         log.info("Getting chapter by bookId: {}, chapter: {}", bookId, chapter);
         
         // DDD: BookApplicationService로 bookId → bookName 변환 후 도메인 중심 메서드 호출
-        ChapterQueryDto chapterQuery = verseApplicationService.getChapterById(bookId, chapter);
-        ChapterDto response = verseResponseMapper.toChapterDto(chapterQuery);
+        ChapterQuery chapterQuery = verseApplicationService.getChapterById(bookId, chapter);
+        ChapterResponse response = verseResponseMapper.toChapterResponse(chapterQuery);
         
         return ResponseEntity.ok(AppResponse.of(response));
     }
@@ -60,16 +61,17 @@ public class KrvVerseController {
      * GET /api/bible/books/43/chapters/3/verses/16
      */
     @GetMapping("/books/{bookId}/chapters/{chapter}/verses/{verse}")
-    public ResponseEntity<AppResponse<VerseDto>> getVerse(
+    public ResponseEntity<AppResponse<VerseResponse>> getVerse(
             @PathVariable Integer bookId,
             @PathVariable Integer chapter,
             @PathVariable Integer verse) {
         
         log.info("Getting verse by bookId: {}, chapter: {}, verse: {}", bookId, chapter, verse);
         
-        // DDD: Application Service에서 모든 검증 처리 (bookId 변환 + 도메인 검증)
-        VerseQueryDto verseQuery = verseApplicationService.getVerse(bookId, chapter, verse);
-        VerseDto response = verseResponseMapper.toVerseDto(verseQuery);
+        // DDD: Web DTO → Application Command DTO 변환
+        VerseQueryCommand command = VerseQueryCommand.of(bookId, chapter, verse);
+        VerseQuery verseQuery = verseApplicationService.getVerse(command);
+        VerseResponse response = verseResponseMapper.toVerseResponse(verseQuery);
         
         return ResponseEntity.ok(AppResponse.of(response));
     }
@@ -79,7 +81,7 @@ public class KrvVerseController {
      * GET /api/bible/verses?bookId=43&chapter=3&fromVerse=16&toVerse=17
      */
     @GetMapping("/verses")
-    public ResponseEntity<AppResponse<List<VerseDto>>> getVerseRange(
+    public ResponseEntity<AppResponse<List<VerseResponse>>> getVerseRange(
             @RequestParam Integer bookId,
             @RequestParam Integer chapter,
             @RequestParam Integer fromVerse,
@@ -89,9 +91,9 @@ public class KrvVerseController {
                 bookId, chapter, fromVerse, toVerse);
 
         // DDD: Application Service에서 모든 검증 처리 (bookId 변환 + 범위 검증)
-        VerseRangeQueryDto rangeQuery = verseApplicationService.getVerseRange(bookId, chapter, fromVerse, toVerse);
-        List<VerseDto> response = rangeQuery.getVerses().stream()
-                .map(verseResponseMapper::toVerseDto)
+        VerseRangeQuery rangeQuery = verseApplicationService.getVerseRange(bookId, chapter, fromVerse, toVerse);
+        List<VerseResponse> response = rangeQuery.getVerses().stream()
+                .map(verseResponseMapper::toVerseResponse)
                 .toList();
 
         return ResponseEntity.ok(AppResponse.of(response));
@@ -102,14 +104,15 @@ public class KrvVerseController {
      * POST /api/bible/search
      */
     @PostMapping("/search")
-    public ResponseEntity<AppResponse<List<VerseSearchResultDto>>> searchVerses(
-            @Valid @RequestBody SearchRequestDto request) {
+    public ResponseEntity<AppResponse<List<VerseSearchResponse>>> searchVerses(
+            @Valid @RequestBody SearchRequest request) {
         
         log.info("Searching verses with keyword: '{}'", request.getKeyword());
         
-        // DDD: 도메인 중심 Application Service 호출
-        VerseSearchDto searchResult = verseApplicationService.searchVerses(request.getKeyword());
-        List<VerseSearchResultDto> response = verseResponseMapper.toSearchResultDtoList(searchResult);
+        // DDD: Web DTO → Application Command DTO 변환
+        VerseSearchCommand command = VerseSearchCommand.of(request.getKeyword());
+        VerseSearchQuery searchResult = verseApplicationService.searchVerses(command);
+        List<VerseSearchResponse> response = verseResponseMapper.toSearchResultDtoList(searchResult);
         
         return ResponseEntity.ok(AppResponse.of(response));
     }
@@ -119,11 +122,11 @@ public class KrvVerseController {
      * GET /api/bible/verses/12345
      */
     @GetMapping("/verses/{id}")
-    public ResponseEntity<AppResponse<VerseDto>> findById(@PathVariable Long id) {
+    public ResponseEntity<AppResponse<VerseResponse>> findById(@PathVariable Long id) {
         log.info("Getting verse by id: {}", id);
         
-        VerseQueryDto verseQuery = verseApplicationService.getVerseById(id);
-        VerseDto response = verseResponseMapper.toVerseDto(verseQuery);
+        VerseQuery verseQuery = verseApplicationService.getVerseById(id);
+        VerseResponse response = verseResponseMapper.toVerseResponse(verseQuery);
         
         return ResponseEntity.ok(AppResponse.of(response));
     }
@@ -133,15 +136,15 @@ public class KrvVerseController {
      * GET /api/bible/books/43/verses
      */
     @GetMapping("/books/{bookId}/verses")
-    public ResponseEntity<AppResponse<List<VerseDto>>> getBookVerses(
+    public ResponseEntity<AppResponse<List<VerseResponse>>> getBookVerses(
             @PathVariable Integer bookId) {
         
         log.info("Getting all verses for bookId: {}", bookId);
         
         // DDD: Application Service에서 모든 검증 처리 (bookId 변환 + 도메인 검증)
-        List<VerseQueryDto> verseQueries = verseApplicationService.getBookVerses(bookId);
-        List<VerseDto> response = verseQueries.stream()
-                .map(verseResponseMapper::toVerseDto)
+        List<VerseQuery> verseQueries = verseApplicationService.getBookVerses(bookId);
+        List<VerseResponse> response = verseQueries.stream()
+                .map(verseResponseMapper::toVerseResponse)
                 .toList();
         
         return ResponseEntity.ok(AppResponse.of(response));

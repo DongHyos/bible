@@ -67,7 +67,7 @@ class ElasticSearchIntegrationTest {
         // verseIndexingApplicationService.indexAllVerses();
         
         // then: 검색 가능
-        // List<VerseSearchResultDto> results = verseSearchApplicationService.searchByContent("하나님");
+        // List<VerseSearchResultQuery> results = verseSearchApplicationService.searchByContent("하나님");
         // assertThat(results).isNotEmpty();
         
         // 현재는 테스트 데이터가 없으므로 스킵

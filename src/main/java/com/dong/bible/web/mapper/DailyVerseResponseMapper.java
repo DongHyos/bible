@@ -1,9 +1,9 @@
 package com.dong.bible.web.mapper;
 
-import com.dong.bible.application.dto.DailyVerseDetailDto;
-import com.dong.bible.application.dto.DailyVerseSummaryDto;
-import com.dong.bible.web.dto.response.DailyVerseDto;
-import com.dong.bible.web.dto.response.DailyVerseSimpleDto;
+import com.dong.bible.application.dto.query.DailyVerseDetailQuery;
+import com.dong.bible.application.dto.query.DailyVerseSummaryQuery;
+import com.dong.bible.web.dto.response.DailyVerseResponse;
+import com.dong.bible.web.dto.response.DailyVerseSimpleResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -23,14 +23,14 @@ public class DailyVerseResponseMapper {
     // ========================================
     
     /**
-     * DailyVerseDetailDto → DailyVerseDto 변환
+     * DailyVerseDetailQuery → DailyVerseResponse 변환
      */
-    public DailyVerseDto fromDetailDto(DailyVerseDetailDto detailDto) {
+    public DailyVerseResponse fromDetailDto(DailyVerseDetailQuery detailDto) {
         if (detailDto == null) {
             return null;
         }
         
-        return DailyVerseDto.builder()
+        return DailyVerseResponse.builder()
                 .id(detailDto.getId())
                 .verseDate(detailDto.getVerseDate())
                 .bookName(detailDto.getBookName())
@@ -45,14 +45,14 @@ public class DailyVerseResponseMapper {
     }
     
     /**
-     * DailyVerseSummaryDto → DailyVerseSimpleDto 변환
+     * DailyVerseSummaryQuery → DailyVerseSimpleResponse 변환
      */
-    public DailyVerseSimpleDto fromSummaryDto(DailyVerseSummaryDto summaryDto) {
+    public DailyVerseSimpleResponse fromSummaryDto(DailyVerseSummaryQuery summaryDto) {
         if (summaryDto == null) {
             return null;
         }
         
-        return DailyVerseSimpleDto.builder()
+        return DailyVerseSimpleResponse.builder()
                 .id(summaryDto.getId())
                 .verseDate(summaryDto.getVerseDate())
                 .bookName(summaryDto.getBookName())
@@ -66,9 +66,9 @@ public class DailyVerseResponseMapper {
     }
     
     /**
-     * List<DailyVerseSummaryDto> → List<DailyVerseSimpleDto> 변환
+     * List<DailyVerseSummaryQuery> → List<DailyVerseSimpleResponse> 변환
      */
-    public List<DailyVerseSimpleDto> fromSummaryDtoList(List<DailyVerseSummaryDto> summaryDtos) {
+    public List<DailyVerseSimpleResponse> fromSummaryDtoList(List<DailyVerseSummaryQuery> summaryDtos) {
         if (summaryDtos == null) {
             return Collections.emptyList();
         }
@@ -85,7 +85,7 @@ public class DailyVerseResponseMapper {
      * 구절 참조 문자열 생성 (유틸리티 메서드)
      * "창세기 1:1-3" 또는 "창세기 1:1" 형태
      */
-    public String buildVerseReference(DailyVerseSummaryDto summaryDto) {
+    public String buildVerseReference(DailyVerseSummaryQuery summaryDto) {
         if (summaryDto == null || summaryDto.getBookName() == null) {
             return "";
         }
@@ -107,7 +107,7 @@ public class DailyVerseResponseMapper {
     /**
      * 구절 참조 문자열 생성 (상세용)
      */
-    public String buildVerseReference(DailyVerseDetailDto detailDto) {
+    public String buildVerseReference(DailyVerseDetailQuery detailDto) {
         if (detailDto == null || detailDto.getBookName() == null) {
             return "";
         }

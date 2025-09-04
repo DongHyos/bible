@@ -1,11 +1,14 @@
 package com.dong.bible.web.controller;
 
-import com.dong.bible.application.dto.VerseSearchResultDto;
+import com.dong.bible.application.dto.query.VerseSearchResultQuery;
+import com.dong.bible.application.dto.query.EnhancedVerseSearchResultQuery;
 import com.dong.bible.application.service.VerseSearchApplicationService;
 import com.dong.bible.common.AppProperties;
 import com.dong.bible.common.utils.ApplicationContextProvider;
 import com.dong.bible.web.dto.response.VerseSearchResponse;
+import com.dong.bible.web.dto.response.EnhancedVerseSearchResponse;
 import com.dong.bible.web.mapper.VerseSearchResponseMapper;
+import com.dong.bible.web.mapper.EnhancedVerseSearchResponseMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,9 +30,16 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
+import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -53,8 +63,13 @@ class VerseSearchControllerTest {
     @MockitoBean
     private VerseSearchResponseMapper verseSearchResponseMapper;
 
-    private VerseSearchResultDto sampleResultDto;
+    @MockitoBean
+    private EnhancedVerseSearchResponseMapper enhancedVerseSearchResponseMapper;
+
+    private VerseSearchResultQuery sampleResultDto;
     private VerseSearchResponse sampleResponse;
+    private EnhancedVerseSearchResultQuery enhancedResultDto;
+    private EnhancedVerseSearchResponse enhancedResponse;
     private MockedStatic<ApplicationContextProvider> mockedStatic;
 
     @BeforeEach
@@ -95,7 +110,7 @@ class VerseSearchControllerTest {
         });
 
         // 테스트 데이터 설정
-        sampleResultDto = VerseSearchResultDto.builder()
+        sampleResultDto = VerseSearchResultQuery.builder()
                 .id("1:1:1")
                 .bookId(1)
                 .bookName("창세기")
@@ -114,6 +129,50 @@ class VerseSearchControllerTest {
                 .content("태초에 하나님이 천지를 창조하시니라")
                 .displayReference("창세기 1:1")
                 .build();
+
+        // Enhanced 검색 결과 DTO
+        enhancedResultDto = EnhancedVerseSearchResultQuery.builder()
+                .id("1:1:1")
+                .bookId(1)
+                .bookName("창세기")
+                .chapter(1)
+                .verse(1)
+                .content("태초에 하나님이 천지를 창조하시니라")
+                .displayReference("창세기 1:1")
+                .highlightedContent("태초에 <mark>하나님</mark>이 천지를 창조하시니라")
+                .score(0.85)
+                .relevanceLevel("HIGH")
+                .highlightCount(1)
+                .hasHighlight(true)
+                .searchKeyword("하나님")
+                .isHighQuality(true)
+                .isPerfectMatch(false)
+                .isPartialMatch(true)
+                .highlightQuality(0.8)
+                .build();
+
+        // Enhanced 검색 응답 DTO
+        enhancedResponse = EnhancedVerseSearchResponse.builder()
+                .id("1:1:1")
+                .bookId(1)
+                .bookName("창세기")
+                .chapter(1)
+                .verse(1)
+                .content("태초에 하나님이 천지를 창조하시니라")
+                .displayReference("창세기 1:1")
+                .highlightedContent("태초에 <mark>하나님</mark>이 천지를 창조하시니라")
+                .score(0.85)
+                .relevanceLevel("HIGH")
+                .highlightCount(1)
+                .hasHighlight(true)
+                .searchKeyword("하나님")
+                .isHighQuality(true)
+                .isPerfectMatch(false)
+                .isPartialMatch(true)
+                .highlightQuality(0.8)
+                .processingTimeMs(50L)
+                .searchType("content")
+                .build();
     }
 
     @AfterEach
@@ -128,7 +187,7 @@ class VerseSearchControllerTest {
     void searchByContent_Success() throws Exception {
         // given
         String keyword = "하나님";
-        List<VerseSearchResultDto> resultDtos = Arrays.asList(sampleResultDto);
+        List<VerseSearchResultQuery> resultDtos = Arrays.asList(sampleResultDto);
         List<VerseSearchResponse> responses = Arrays.asList(sampleResponse);
 
         when(verseSearchApplicationService.searchByContent(keyword)).thenReturn(resultDtos);
@@ -141,11 +200,13 @@ class VerseSearchControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$[0].id").value("1:1:1"))
-                .andExpect(jsonPath("$[0].bookName").value("창세기"))
-                .andExpect(jsonPath("$[0].content").value("태초에 하나님이 천지를 창조하시니라"))
-                .andExpect(jsonPath("$[0].displayReference").value("창세기 1:1"));
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.code").value("S000"))
+                .andExpect(jsonPath("$.payload").isArray())
+                .andExpect(jsonPath("$.payload[0].id").value("1:1:1"))
+                .andExpect(jsonPath("$.payload[0].bookName").value("창세기"))
+                .andExpect(jsonPath("$.payload[0].content").value("태초에 하나님이 천지를 창조하시니라"))
+                .andExpect(jsonPath("$.payload[0].displayReference").value("창세기 1:1"));
     }
 
     @Test
@@ -153,7 +214,7 @@ class VerseSearchControllerTest {
     void searchByContent_NoResults() throws Exception {
         // given
         String keyword = "존재하지않는키워드";
-        List<VerseSearchResultDto> emptyResults = Collections.emptyList();
+        List<VerseSearchResultQuery> emptyResults = Collections.emptyList();
         List<VerseSearchResponse> emptyResponses = Collections.emptyList();
 
         when(verseSearchApplicationService.searchByContent(keyword)).thenReturn(emptyResults);
@@ -166,8 +227,9 @@ class VerseSearchControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$").isEmpty());
+                .andExpect(jsonPath("$.status").value(204))
+                .andExpect(jsonPath("$.code").value("S003"))
+                .andExpect(jsonPath("$.message").value("조회된 결과가 없습니다."));
     }
 
     @Test
@@ -185,7 +247,7 @@ class VerseSearchControllerTest {
     void searchByBookName_Success() throws Exception {
         // given
         String bookName = "창세기";
-        List<VerseSearchResultDto> resultDtos = Arrays.asList(sampleResultDto);
+        List<VerseSearchResultQuery> resultDtos = Arrays.asList(sampleResultDto);
         List<VerseSearchResponse> responses = Arrays.asList(sampleResponse);
 
         when(verseSearchApplicationService.searchByBookName(bookName)).thenReturn(resultDtos);
@@ -197,8 +259,9 @@ class VerseSearchControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$[0].bookName").value("창세기"));
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.payload").isArray())
+                .andExpect(jsonPath("$.payload[0].bookName").value("창세기"));
     }
 
     @Test
@@ -206,7 +269,7 @@ class VerseSearchControllerTest {
     void searchByBookName_KoreanBookName() throws Exception {
         // given
         String bookName = "출애굽기";
-        List<VerseSearchResultDto> resultDtos = Arrays.asList(sampleResultDto);
+        List<VerseSearchResultQuery> resultDtos = Arrays.asList(sampleResultDto);
         List<VerseSearchResponse> responses = Arrays.asList(sampleResponse);
 
         when(verseSearchApplicationService.searchByBookName(bookName)).thenReturn(resultDtos);
@@ -225,7 +288,7 @@ class VerseSearchControllerTest {
         // given
         Integer bookId = 1;
         Integer chapter = 1;
-        List<VerseSearchResultDto> resultDtos = Arrays.asList(sampleResultDto);
+        List<VerseSearchResultQuery> resultDtos = Arrays.asList(sampleResultDto);
         List<VerseSearchResponse> responses = Arrays.asList(sampleResponse);
 
         when(verseSearchApplicationService.searchByBookAndChapter(bookId, chapter)).thenReturn(resultDtos);
@@ -239,9 +302,10 @@ class VerseSearchControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$[0].bookId").value(1))
-                .andExpect(jsonPath("$[0].chapter").value(1));
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.payload").isArray())
+                .andExpect(jsonPath("$.payload[0].bookId").value(1))
+                .andExpect(jsonPath("$.payload[0].chapter").value(1));
     }
 
     @Test
@@ -311,7 +375,7 @@ class VerseSearchControllerTest {
     void searchByContent_MapperException_Returns500() throws Exception {
         // given
         String keyword = "테스트";
-        List<VerseSearchResultDto> resultDtos = Arrays.asList(sampleResultDto);
+        List<VerseSearchResultQuery> resultDtos = Arrays.asList(sampleResultDto);
 
         when(verseSearchApplicationService.searchByContent(keyword)).thenReturn(resultDtos);
         when(verseSearchResponseMapper.toResponseList(any()))
@@ -323,5 +387,521 @@ class VerseSearchControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isInternalServerError());
+    }
+
+    // ========== 페이징 테스트 ==========
+
+    @Test
+    @DisplayName("구절 내용으로 검색 (페이징) - 성공")
+    void searchByContentWithPaging_Success() throws Exception {
+        // given
+        String keyword = "하나님";
+        Pageable pageable = PageRequest.of(0, 10);
+        List<VerseSearchResultQuery> resultDtos = Arrays.asList(sampleResultDto);
+        Page<VerseSearchResultQuery> page = new PageImpl<>(resultDtos, pageable, 1);
+        List<VerseSearchResponse> responses = Arrays.asList(sampleResponse);
+
+        when(verseSearchApplicationService.searchByContentWithPaging(eq(keyword), any(Pageable.class))).thenReturn(page);
+        when(verseSearchResponseMapper.toResponseList(resultDtos)).thenReturn(responses);
+
+        // when & then
+        mockMvc.perform(get("/api/verses/search/paged")
+                        .param("keyword", keyword)
+                        .param("page", "0")
+                        .param("size", "10")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.code").value("S000"))
+                .andExpect(jsonPath("$.payload").isArray())
+                .andExpect(jsonPath("$.payload[0].id").value("1:1:1"))
+                .andExpect(jsonPath("$.payload[0].bookName").value("창세기"))
+                .andExpect(jsonPath("$.payload[0].content").value("태초에 하나님이 천지를 창조하시니라"))
+                .andExpect(jsonPath("$.paging.totalElements").value(1))
+                .andExpect(jsonPath("$.paging.totalPages").value(1))
+                .andExpect(jsonPath("$.paging.number").value(0))
+                .andExpect(jsonPath("$.paging.numberOfElements").value(1))
+                .andExpect(jsonPath("$.paging.first").value(true))
+                .andExpect(jsonPath("$.paging.last").value(true));
+    }
+
+    @Test
+    @DisplayName("구절 내용으로 검색 (페이징) - 기본 페이징 파라미터")
+    void searchByContentWithPaging_DefaultPaging() throws Exception {
+        // given
+        String keyword = "하나님";
+        Pageable pageable = PageRequest.of(0, 20); // 기본값
+        List<VerseSearchResultQuery> resultDtos = Arrays.asList(sampleResultDto);
+        Page<VerseSearchResultQuery> page = new PageImpl<>(resultDtos, pageable, 1);
+        List<VerseSearchResponse> responses = Arrays.asList(sampleResponse);
+
+        when(verseSearchApplicationService.searchByContentWithPaging(eq(keyword), any(Pageable.class))).thenReturn(page);
+        when(verseSearchResponseMapper.toResponseList(resultDtos)).thenReturn(responses);
+
+        // when & then
+        mockMvc.perform(get("/api/verses/search/paged")
+                        .param("keyword", keyword)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paging.number").value(0));
+    }
+
+    @Test
+    @DisplayName("구절 내용으로 검색 (페이징) - 두 번째 페이지")
+    void searchByContentWithPaging_SecondPage() throws Exception {
+        // given
+        String keyword = "하나님";
+        Pageable pageable = PageRequest.of(1, 5);
+        List<VerseSearchResultQuery> resultDtos = Arrays.asList(sampleResultDto);
+        Page<VerseSearchResultQuery> page = new PageImpl<>(resultDtos, pageable, 10); // 총 10개 항목
+        List<VerseSearchResponse> responses = Arrays.asList(sampleResponse);
+
+        when(verseSearchApplicationService.searchByContentWithPaging(eq(keyword), any(Pageable.class))).thenReturn(page);
+        when(verseSearchResponseMapper.toResponseList(resultDtos)).thenReturn(responses);
+
+        // when & then
+        mockMvc.perform(get("/api/verses/search/paged")
+                        .param("keyword", keyword)
+                        .param("page", "1")
+                        .param("size", "5")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paging.number").value(1))
+                .andExpect(jsonPath("$.paging.totalElements").value(10))
+                .andExpect(jsonPath("$.paging.totalPages").value(2))
+                .andExpect(jsonPath("$.paging.first").value(false))
+                .andExpect(jsonPath("$.paging.last").value(true));
+    }
+
+    @Test
+    @DisplayName("구절 내용으로 검색 (페이징) - 빈 결과")
+    void searchByContentWithPaging_EmptyResult() throws Exception {
+        // given
+        String keyword = "존재하지않는키워드";
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<VerseSearchResultQuery> emptyPage = new PageImpl<>(Collections.emptyList(), pageable, 0);
+        List<VerseSearchResponse> emptyResponses = Collections.emptyList();
+
+        when(verseSearchApplicationService.searchByContentWithPaging(eq(keyword), any(Pageable.class))).thenReturn(emptyPage);
+        when(verseSearchResponseMapper.toResponseList(Collections.emptyList())).thenReturn(emptyResponses);
+
+        // when & then
+        mockMvc.perform(get("/api/verses/search/paged")
+                        .param("keyword", keyword)
+                        .param("page", "0")
+                        .param("size", "10")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.payload").isArray())
+                .andExpect(jsonPath("$.payload").isEmpty())
+                .andExpect(jsonPath("$.paging.totalElements").value(0))
+                .andExpect(jsonPath("$.paging.empty").value(true));
+    }
+
+    @Test
+    @DisplayName("구절 내용으로 검색 (페이징) - keyword 파라미터 누락")
+    void searchByContentWithPaging_MissingKeywordParameter() throws Exception {
+        // when & then
+        mockMvc.perform(get("/api/verses/search/paged")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isInternalServerError()); // 파라미터 누락시 500 에러
+    }
+
+    // ========== Enhanced 검색 API 테스트 ==========
+
+    @Test
+    @DisplayName("Enhanced 구절 내용 검색 API - 성공")
+    void searchByContentEnhanced_Success() throws Exception {
+        // given
+        String keyword = "하나님";
+        String sortBy = "score";
+        boolean useSynonyms = false;
+        
+        List<EnhancedVerseSearchResultQuery> resultDtos = Arrays.asList(enhancedResultDto);
+        List<EnhancedVerseSearchResultQuery> sortedResults = Arrays.asList(enhancedResultDto);
+        List<EnhancedVerseSearchResponse> responses = Arrays.asList(enhancedResponse);
+        
+        EnhancedVerseSearchResponse.SearchOptions searchOptions = 
+                EnhancedVerseSearchResponse.SearchOptions.builder()
+                        .useSynonyms(false)
+                        .sortBy("score")
+                        .includeScore(true)
+                        .fragmentSize(150)
+                        .maxFragments(3)
+                        .build();
+
+        when(verseSearchApplicationService.searchByContentEnhanced(keyword)).thenReturn(resultDtos);
+        when(verseSearchApplicationService.sortEnhancedResults(resultDtos, sortBy)).thenReturn(sortedResults);
+        when(enhancedVerseSearchResponseMapper.createSearchOptions(useSynonyms, sortBy, true, 150, 3))
+                .thenReturn(searchOptions);
+        when(enhancedVerseSearchResponseMapper.toResponseList(eq(sortedResults), eq("content"), any(Long.class), eq(searchOptions)))
+                .thenReturn(responses);
+
+        // when & then
+        mockMvc.perform(get("/api/verses/search/enhanced")
+                        .param("keyword", keyword)
+                        .param("sortBy", sortBy)
+                        .param("useSynonyms", String.valueOf(useSynonyms))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.payload", hasSize(1)))
+                .andExpect(jsonPath("$.payload[0].id").value("1:1:1"))
+                .andExpect(jsonPath("$.payload[0].bookName").value("창세기"))
+                .andExpect(jsonPath("$.payload[0].score").value(0.85))
+                .andExpect(jsonPath("$.payload[0].highlightedContent").value("태초에 <mark>하나님</mark>이 천지를 창조하시니라"))
+                .andExpect(jsonPath("$.payload[0].relevanceLevel").value("HIGH"))
+                .andExpect(jsonPath("$.payload[0].hasHighlight").value(true))
+                .andExpect(jsonPath("$.payload[0].isHighQuality").value(true))
+                .andExpect(jsonPath("$.payload[0].searchType").value("content"))
+                .andExpect(jsonPath("$.payload[0].processingTimeMs").value(50));
+
+        verify(verseSearchApplicationService).searchByContentEnhanced(keyword);
+        verify(verseSearchApplicationService).sortEnhancedResults(resultDtos, sortBy);
+        verify(enhancedVerseSearchResponseMapper).createSearchOptions(useSynonyms, sortBy, true, 150, 3);
+        verify(enhancedVerseSearchResponseMapper).toResponseList(eq(sortedResults), eq("content"), any(Long.class), eq(searchOptions));
+    }
+
+    @Test
+    @DisplayName("Enhanced 구절 내용 검색 (페이징) API - 성공")
+    void searchByContentEnhancedWithPaging_Success() throws Exception {
+        // given
+        String keyword = "하나님";
+        String sortBy = "score";
+        boolean useSynonyms = false;
+        
+        List<EnhancedVerseSearchResultQuery> resultDtos = Arrays.asList(enhancedResultDto);
+        Page<EnhancedVerseSearchResultQuery> pageResult = new PageImpl<>(resultDtos, PageRequest.of(0, 20), 1);
+        List<EnhancedVerseSearchResponse> responses = Arrays.asList(enhancedResponse);
+        
+        EnhancedVerseSearchResponse.SearchOptions searchOptions = 
+                EnhancedVerseSearchResponse.SearchOptions.builder()
+                        .useSynonyms(false)
+                        .sortBy("score")
+                        .includeScore(true)
+                        .fragmentSize(150)
+                        .maxFragments(3)
+                        .build();
+
+        when(verseSearchApplicationService.searchByContentEnhancedWithPaging(eq(keyword), any(Pageable.class)))
+                .thenReturn(pageResult);
+        when(enhancedVerseSearchResponseMapper.createSearchOptions(useSynonyms, sortBy, true, 150, 3))
+                .thenReturn(searchOptions);
+        when(enhancedVerseSearchResponseMapper.toResponseList(eq(resultDtos), eq("content"), any(Long.class), eq(searchOptions)))
+                .thenReturn(responses);
+
+        // when & then
+        mockMvc.perform(get("/api/verses/search/enhanced/paged")
+                        .param("keyword", keyword)
+                        .param("sortBy", sortBy)
+                        .param("useSynonyms", String.valueOf(useSynonyms))
+                        .param("page", "0")
+                        .param("size", "20")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.payload", hasSize(1)))
+                .andExpect(jsonPath("$.payload[0].highlightedContent").value("태초에 <mark>하나님</mark>이 천지를 창조하시니라"))
+                .andExpect(jsonPath("$.payload[0].isHighQuality").value(true))
+                .andExpect(jsonPath("$.paging.totalElements").value(1));
+
+        verify(verseSearchApplicationService).searchByContentEnhancedWithPaging(eq(keyword), any(Pageable.class));
+        verify(enhancedVerseSearchResponseMapper).createSearchOptions(useSynonyms, sortBy, true, 150, 3);
+        verify(enhancedVerseSearchResponseMapper).toResponseList(eq(resultDtos), eq("content"), any(Long.class), eq(searchOptions));
+    }
+
+    @Test
+    @DisplayName("Enhanced 책 이름 검색 API - 성공")
+    void searchByBookNameEnhanced_Success() throws Exception {
+        // given
+        String bookName = "창세기";
+        String sortBy = "score";
+        
+        List<EnhancedVerseSearchResultQuery> resultDtos = Arrays.asList(enhancedResultDto);
+        List<EnhancedVerseSearchResultQuery> sortedResults = Arrays.asList(enhancedResultDto);
+        List<EnhancedVerseSearchResponse> responses = Arrays.asList(enhancedResponse);
+        
+        EnhancedVerseSearchResponse.SearchOptions defaultOptions = 
+                EnhancedVerseSearchResponse.SearchOptions.builder()
+                        .useSynonyms(false)
+                        .sortBy("score")
+                        .includeScore(true)
+                        .fragmentSize(150)
+                        .maxFragments(3)
+                        .build();
+
+        when(verseSearchApplicationService.searchByBookNameEnhanced(bookName)).thenReturn(resultDtos);
+        when(verseSearchApplicationService.sortEnhancedResults(resultDtos, sortBy)).thenReturn(sortedResults);
+        when(enhancedVerseSearchResponseMapper.createDefaultSearchOptions()).thenReturn(defaultOptions);
+        when(enhancedVerseSearchResponseMapper.toResponseList(eq(sortedResults), eq("bookName"), any(Long.class), eq(defaultOptions)))
+                .thenReturn(responses);
+
+        // when & then
+        mockMvc.perform(get("/api/verses/search/enhanced/book/{bookName}", bookName)
+                        .param("sortBy", sortBy)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.payload", hasSize(1)))
+                .andExpect(jsonPath("$.payload[0].bookName").value("창세기"));
+
+        verify(verseSearchApplicationService).searchByBookNameEnhanced(bookName);
+        verify(verseSearchApplicationService).sortEnhancedResults(resultDtos, sortBy);
+        verify(enhancedVerseSearchResponseMapper).createDefaultSearchOptions();
+    }
+
+    @Test
+    @DisplayName("Enhanced 복합 조건 검색 API - 성공")
+    void searchByMultipleConditionsEnhanced_Success() throws Exception {
+        // given
+        String keyword = "하나님";
+        String bookName = "창세기";
+        Integer chapter = 1;
+        String sortBy = "score";
+        boolean useSynonyms = false;
+        
+        List<EnhancedVerseSearchResultQuery> resultDtos = Arrays.asList(enhancedResultDto);
+        Page<EnhancedVerseSearchResultQuery> pageResult = new PageImpl<>(resultDtos, PageRequest.of(0, 20), 1);
+        List<EnhancedVerseSearchResponse> responses = Arrays.asList(enhancedResponse);
+        
+        EnhancedVerseSearchResponse.SearchOptions searchOptions = 
+                EnhancedVerseSearchResponse.SearchOptions.builder()
+                        .useSynonyms(false)
+                        .sortBy("score")
+                        .includeScore(true)
+                        .fragmentSize(150)
+                        .maxFragments(3)
+                        .build();
+
+        when(verseSearchApplicationService.searchByMultipleConditionsEnhanced(eq(keyword), eq(bookName), eq(chapter), any(Pageable.class)))
+                .thenReturn(pageResult);
+        when(enhancedVerseSearchResponseMapper.createSearchOptions(useSynonyms, sortBy, true, 150, 3))
+                .thenReturn(searchOptions);
+        when(enhancedVerseSearchResponseMapper.toResponseList(eq(resultDtos), eq("advanced"), any(Long.class), eq(searchOptions)))
+                .thenReturn(responses);
+
+        // when & then
+        mockMvc.perform(get("/api/verses/search/enhanced/advanced")
+                        .param("keyword", keyword)
+                        .param("bookName", bookName)
+                        .param("chapter", String.valueOf(chapter))
+                        .param("sortBy", sortBy)
+                        .param("useSynonyms", String.valueOf(useSynonyms))
+                        .param("page", "0")
+                        .param("size", "20")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.payload", hasSize(1)))
+                .andExpect(jsonPath("$.payload[0].bookName").value("창세기"))
+                .andExpect(jsonPath("$.payload[0].chapter").value(1));
+
+        verify(verseSearchApplicationService).searchByMultipleConditionsEnhanced(eq(keyword), eq(bookName), eq(chapter), any(Pageable.class));
+        verify(enhancedVerseSearchResponseMapper).createSearchOptions(useSynonyms, sortBy, true, 150, 3);
+    }
+
+    @Test
+    @DisplayName("Enhanced 동의어 검색 API - 성공")
+    void searchWithSynonyms_Success() throws Exception {
+        // given
+        String keyword = "하나님";
+        String sortBy = "score";
+        
+        List<EnhancedVerseSearchResultQuery> resultDtos = Arrays.asList(enhancedResultDto);
+        Page<EnhancedVerseSearchResultQuery> pageResult = new PageImpl<>(resultDtos, PageRequest.of(0, 20), 1);
+        List<EnhancedVerseSearchResponse> responses = Arrays.asList(enhancedResponse);
+        
+        EnhancedVerseSearchResponse.SearchOptions searchOptions = 
+                EnhancedVerseSearchResponse.SearchOptions.builder()
+                        .useSynonyms(true) // 동의어 사용
+                        .sortBy("score")
+                        .includeScore(true)
+                        .fragmentSize(150)
+                        .maxFragments(3)
+                        .build();
+
+        when(verseSearchApplicationService.searchByContentEnhancedWithPaging(eq(keyword), any(Pageable.class)))
+                .thenReturn(pageResult);
+        when(enhancedVerseSearchResponseMapper.createSearchOptions(true, sortBy, true, 150, 3))
+                .thenReturn(searchOptions);
+        when(enhancedVerseSearchResponseMapper.toResponseList(eq(resultDtos), eq("synonyms"), any(Long.class), eq(searchOptions)))
+                .thenReturn(responses);
+
+        // when & then
+        mockMvc.perform(get("/api/verses/search/enhanced/synonyms")
+                        .param("keyword", keyword)
+                        .param("sortBy", sortBy)
+                        .param("page", "0")
+                        .param("size", "20")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.payload", hasSize(1)))
+                .andExpect(jsonPath("$.paging.totalElements").value(1));
+
+        verify(verseSearchApplicationService).searchByContentEnhancedWithPaging(eq(keyword), any(Pageable.class));
+        verify(enhancedVerseSearchResponseMapper).createSearchOptions(true, sortBy, true, 150, 3);
+    }
+
+    @Test
+    @DisplayName("Enhanced 검색 API - 빈 키워드 처리")
+    void searchByContentEnhanced_EmptyKeyword() throws Exception {
+        // given
+        String emptyKeyword = "";
+        when(verseSearchApplicationService.searchByContentEnhanced(emptyKeyword))
+                .thenThrow(new IllegalArgumentException("검색 키워드는 비어있을 수 없습니다"));
+
+        // when & then
+        mockMvc.perform(get("/api/verses/search/enhanced")
+                        .param("keyword", emptyKeyword)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isInternalServerError());
+
+        verify(verseSearchApplicationService).searchByContentEnhanced(emptyKeyword);
+    }
+
+    @Test
+    @DisplayName("Enhanced 검색 API - Application Service 예외 처리")
+    void searchByContentEnhanced_ServiceException() throws Exception {
+        // given
+        String keyword = "하나님";
+        when(verseSearchApplicationService.searchByContentEnhanced(keyword))
+                .thenThrow(new RuntimeException("ElasticSearch 연결 실패"));
+
+        // when & then
+        mockMvc.perform(get("/api/verses/search/enhanced")
+                        .param("keyword", keyword)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isInternalServerError());
+
+        verify(verseSearchApplicationService).searchByContentEnhanced(keyword);
+        verify(enhancedVerseSearchResponseMapper, never()).toResponseList(any(), anyString(), any(Long.class), any());
+    }
+
+    @Test
+    @DisplayName("Enhanced 복합 검색 API - 선택적 파라미터 처리")
+    void searchByMultipleConditionsEnhanced_OptionalParameters() throws Exception {
+        // given - keyword만 제공
+        String keyword = "하나님";
+        
+        List<EnhancedVerseSearchResultQuery> resultDtos = Arrays.asList(enhancedResultDto);
+        Page<EnhancedVerseSearchResultQuery> pageResult = new PageImpl<>(resultDtos, PageRequest.of(0, 20), 1);
+        List<EnhancedVerseSearchResponse> responses = Arrays.asList(enhancedResponse);
+        
+        EnhancedVerseSearchResponse.SearchOptions searchOptions = 
+                EnhancedVerseSearchResponse.SearchOptions.builder()
+                        .useSynonyms(false)
+                        .sortBy("score")
+                        .includeScore(true)
+                        .fragmentSize(150)
+                        .maxFragments(3)
+                        .build();
+
+        when(verseSearchApplicationService.searchByMultipleConditionsEnhanced(eq(keyword), eq(null), eq(null), any(Pageable.class)))
+                .thenReturn(pageResult);
+        when(enhancedVerseSearchResponseMapper.createSearchOptions(false, "score", true, 150, 3))
+                .thenReturn(searchOptions);
+        when(enhancedVerseSearchResponseMapper.toResponseList(eq(resultDtos), eq("advanced"), any(Long.class), eq(searchOptions)))
+                .thenReturn(responses);
+
+        // when & then
+        mockMvc.perform(get("/api/verses/search/enhanced/advanced")
+                        .param("keyword", keyword)
+                        // bookName과 chapter는 제공하지 않음
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.payload", hasSize(1)));
+
+        verify(verseSearchApplicationService).searchByMultipleConditionsEnhanced(eq(keyword), eq(null), eq(null), any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("Enhanced 검색 API - 기본값 파라미터 테스트")
+    void searchByContentEnhanced_DefaultParameters() throws Exception {
+        // given
+        String keyword = "하나님";
+        // sortBy와 useSynonyms 파라미터를 제공하지 않음 (기본값 사용)
+        
+        List<EnhancedVerseSearchResultQuery> resultDtos = Arrays.asList(enhancedResultDto);
+        List<EnhancedVerseSearchResultQuery> sortedResults = Arrays.asList(enhancedResultDto);
+        List<EnhancedVerseSearchResponse> responses = Arrays.asList(enhancedResponse);
+        
+        EnhancedVerseSearchResponse.SearchOptions searchOptions = 
+                EnhancedVerseSearchResponse.SearchOptions.builder()
+                        .useSynonyms(false) // 기본값
+                        .sortBy("score") // 기본값
+                        .includeScore(true)
+                        .fragmentSize(150)
+                        .maxFragments(3)
+                        .build();
+
+        when(verseSearchApplicationService.searchByContentEnhanced(keyword)).thenReturn(resultDtos);
+        when(verseSearchApplicationService.sortEnhancedResults(resultDtos, "score")).thenReturn(sortedResults);
+        when(enhancedVerseSearchResponseMapper.createSearchOptions(false, "score", true, 150, 3))
+                .thenReturn(searchOptions);
+        when(enhancedVerseSearchResponseMapper.toResponseList(eq(sortedResults), eq("content"), any(Long.class), eq(searchOptions)))
+                .thenReturn(responses);
+
+        // when & then
+        mockMvc.perform(get("/api/verses/search/enhanced")
+                        .param("keyword", keyword)
+                        // 다른 파라미터는 제공하지 않아서 기본값 사용
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk());
+
+        // 기본값으로 호출되었는지 확인
+        verify(verseSearchApplicationService).sortEnhancedResults(resultDtos, "score");
+        verify(enhancedVerseSearchResponseMapper).createSearchOptions(false, "score", true, 150, 3);
+    }
+
+    @Test
+    @DisplayName("Enhanced 검색 API - 처리 시간 측정 검증")
+    void searchByContentEnhanced_ProcessingTimeTracking() throws Exception {
+        // given
+        String keyword = "하나님";
+        List<EnhancedVerseSearchResultQuery> resultDtos = Arrays.asList(enhancedResultDto);
+        List<EnhancedVerseSearchResultQuery> sortedResults = Arrays.asList(enhancedResultDto);
+        List<EnhancedVerseSearchResponse> responses = Arrays.asList(enhancedResponse);
+        
+        EnhancedVerseSearchResponse.SearchOptions searchOptions = 
+                EnhancedVerseSearchResponse.SearchOptions.builder()
+                        .useSynonyms(false)
+                        .sortBy("score")
+                        .includeScore(true)
+                        .fragmentSize(150)
+                        .maxFragments(3)
+                        .build();
+
+        when(verseSearchApplicationService.searchByContentEnhanced(keyword)).thenReturn(resultDtos);
+        when(verseSearchApplicationService.sortEnhancedResults(resultDtos, "score")).thenReturn(sortedResults);
+        when(enhancedVerseSearchResponseMapper.createSearchOptions(false, "score", true, 150, 3))
+                .thenReturn(searchOptions);
+        when(enhancedVerseSearchResponseMapper.toResponseList(eq(sortedResults), eq("content"), any(Long.class), eq(searchOptions)))
+                .thenReturn(responses);
+
+        // when & then
+        mockMvc.perform(get("/api/verses/search/enhanced")
+                        .param("keyword", keyword)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.payload[0].processingTimeMs").value(50L));
+
+        // 처리 시간이 mapper에 전달되었는지 확인
+        verify(enhancedVerseSearchResponseMapper).toResponseList(eq(sortedResults), eq("content"), any(Long.class), eq(searchOptions));
     }
 }

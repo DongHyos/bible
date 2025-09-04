@@ -1,7 +1,7 @@
 package com.dong.bible.application.service;
 
-import com.dong.bible.application.dto.SermonDetailDto;
-import com.dong.bible.application.dto.SermonSummaryDto;
+import com.dong.bible.application.dto.query.SermonDetailQuery;
+import com.dong.bible.application.dto.query.SermonSummaryQuery;
 import com.dong.bible.domain.sermon.Sermon;
 import com.dong.bible.domain.sermon.SermonDomainService;
 import com.dong.bible.domain.sermon.SermonInfo;
@@ -48,7 +48,7 @@ class SermonApplicationServiceTest {
         when(sermonDomainService.getSermonById(sermonId)).thenReturn(Optional.of(detailSermon));
 
         // When
-        SermonDetailDto result = sermonApplicationService.getSermonById(sermonId);
+        SermonDetailQuery result = sermonApplicationService.getSermonById(sermonId);
 
         // Then
         assertThat(result).isNotNull();
@@ -104,7 +104,7 @@ class SermonApplicationServiceTest {
         when(sermonDomainService.getSermonsByVerse(bookId, chapter, verse)).thenReturn(sermons);
 
         // When
-        List<SermonSummaryDto> result = sermonApplicationService.getSermonsByVerse(bookId, chapter, verse);
+        List<SermonSummaryQuery> result = sermonApplicationService.getSermonsByVerse(bookId, chapter, verse);
 
         // Then
         assertThat(result).hasSize(2);
@@ -186,7 +186,7 @@ class SermonApplicationServiceTest {
         when(sermonDomainService.getSermonsByPastor(pastorName)).thenReturn(sermons);
 
         // When
-        List<SermonSummaryDto> result = sermonApplicationService.getSermonsByPastor(pastorName);
+        List<SermonSummaryQuery> result = sermonApplicationService.getSermonsByPastor(pastorName);
 
         // Then
         assertThat(result).hasSize(1);
@@ -234,7 +234,7 @@ class SermonApplicationServiceTest {
         when(sermonDomainService.getSermonsByChurch(churchName)).thenReturn(sermons);
 
         // When
-        List<SermonSummaryDto> result = sermonApplicationService.getSermonsByChurch(churchName);
+        List<SermonSummaryQuery> result = sermonApplicationService.getSermonsByChurch(churchName);
 
         // Then
         assertThat(result).hasSize(1);
@@ -268,7 +268,7 @@ class SermonApplicationServiceTest {
         when(sermonDomainService.searchSermonsByTitle(title)).thenReturn(sermons);
 
         // When
-        List<SermonSummaryDto> result = sermonApplicationService.searchSermonsByTitle(title);
+        List<SermonSummaryQuery> result = sermonApplicationService.searchSermonsByTitle(title);
 
         // Then
         assertThat(result).hasSize(1);
@@ -309,7 +309,7 @@ class SermonApplicationServiceTest {
         when(sermonDomainService.getPopularSermons()).thenReturn(popularSermons);
 
         // When
-        List<SermonSummaryDto> result = sermonApplicationService.getPopularSermons();
+        List<SermonSummaryQuery> result = sermonApplicationService.getPopularSermons();
 
         // Then
         assertThat(result).hasSize(3);
@@ -332,7 +332,7 @@ class SermonApplicationServiceTest {
         when(sermonDomainService.getLatestSermons()).thenReturn(latestSermons);
 
         // When
-        List<SermonSummaryDto> result = sermonApplicationService.getLatestSermons();
+        List<SermonSummaryQuery> result = sermonApplicationService.getLatestSermons();
 
         // Then
         assertThat(result).hasSize(3);
@@ -399,7 +399,7 @@ class SermonApplicationServiceTest {
     // === 헬퍼 메서드 ===
 
     /**
-     * Summary DTO용 Mock Sermon (SermonSummaryDto.from()에서 필요한 메서드만)
+     * Summary DTO용 Mock Sermon (SermonSummaryQuery.from()에서 필요한 메서드만)
      */
     private Sermon createSummaryMockSermon(Long id, String title, String pastorName, String churchName) {
         Sermon sermon = mock(Sermon.class);
@@ -439,7 +439,7 @@ class SermonApplicationServiceTest {
     }
     
     /**
-     * Detail DTO용 Mock Sermon (SermonDetailDto.from()에서 필요한 메서드만)
+     * Detail DTO용 Mock Sermon (SermonDetailQuery.from()에서 필요한 메서드만)
      */
     private Sermon createDetailMockSermon(Long id, String title, String pastorName, String churchName, String content) {
         Sermon sermon = createSummaryMockSermon(id, title, pastorName, churchName);

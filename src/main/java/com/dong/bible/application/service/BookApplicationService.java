@@ -1,7 +1,7 @@
 package com.dong.bible.application.service;
 
-import com.dong.bible.application.dto.BookDto;
-import com.dong.bible.application.dto.BibleStatisticsDto;
+import com.dong.bible.application.dto.query.BookQuery;
+import com.dong.bible.application.dto.query.BibleStatisticsQuery;
 import com.dong.bible.ENUM.Testament;
 import com.dong.bible.domain.book.Book;
 import com.dong.bible.domain.book.BookName;
@@ -41,10 +41,10 @@ public class BookApplicationService {
      * 모든 성경책 조회 (순서대로)
      * Use Case: 성경책 목록 페이지 표시
      */
-    public List<BookDto> getAllBooks() {
+    public List<BookQuery> getAllBooks() {
         List<Book> books = bookRepository.findAll();
         return books.stream()
-                .map(BookDto::from)
+                .map(BookQuery::from)
                 .collect(Collectors.toList());
     }
     
@@ -52,39 +52,39 @@ public class BookApplicationService {
      * DB ID로 Book 조회
      * Use Case: 성경책 상세 페이지 표시 + VerseQueryService 지원
      */
-    public BookDto getBookById(Integer bookId) {
+    public BookQuery getBookById(Integer bookId) {
         if (bookId == null) {
             throw new IllegalArgumentException("Book id must not be null");
         }
 
         Book book = findBookByIdDomain(bookId);
-        return BookDto.from(book);
+        return BookQuery.from(book);
     }
     
     /**
      * 성경책 이름으로 Book 조회
      * Use Case: VerseQueryService 지원 + 검색 기능
      */
-    public Optional<BookDto> getBookByName(String bookName) {
+    public Optional<BookQuery> getBookByName(String bookName) {
         if (bookName == null || bookName.trim().isEmpty()) {
             return Optional.empty();
         }
         
         return getBookByNameDomain(bookName)
-                .map(BookDto::from);
+                .map(BookQuery::from);
     }
     
     /**
      * BookName Value Object로 Book 조회
      * Use Case: VerseQueryService 지원
      */
-    public Optional<BookDto> getBookByName(BookName bookName) {
+    public Optional<BookQuery> getBookByName(BookName bookName) {
         if (bookName == null) {
             return Optional.empty();
         }
         
         return bookRepository.findByName(bookName)
-                .map(BookDto::from);
+                .map(BookQuery::from);
     }
     
     /**
@@ -110,11 +110,11 @@ public class BookApplicationService {
      * 신구약별 성경책 조회
      * Use Case: 신구약별 성경책 목록 페이지 표시
      */
-    public List<BookDto> getBooksByTestament(String testament) {
+    public List<BookQuery> getBooksByTestament(String testament) {
         Testament testamentEnum = Testament.fromString(testament);
         List<Book> books = bookRepository.findByTestament(testamentEnum);
         return books.stream()
-                .map(BookDto::from)
+                .map(BookQuery::from)
                 .collect(Collectors.toList());
     }
     
@@ -122,10 +122,10 @@ public class BookApplicationService {
      * 구약 성경책 목록 조회
      * Use Case: 구약 성경책 목록 페이지 표시
      */
-    public List<BookDto> getOldTestamentBooks() {
+    public List<BookQuery> getOldTestamentBooks() {
         List<Book> books = bookRepository.findOldTestamentBooks();
         return books.stream()
-                .map(BookDto::from)
+                .map(BookQuery::from)
                 .collect(Collectors.toList());
     }
     
@@ -133,10 +133,10 @@ public class BookApplicationService {
      * 신약 성경책 목록 조회
      * Use Case: 신약 성경책 목록 페이지 표시
      */
-    public List<BookDto> getNewTestamentBooks() {
+    public List<BookQuery> getNewTestamentBooks() {
         List<Book> books = bookRepository.findNewTestamentBooks();
         return books.stream()
-                .map(BookDto::from)
+                .map(BookQuery::from)
                 .collect(Collectors.toList());
     }
     
@@ -188,13 +188,13 @@ public class BookApplicationService {
      * 신구약별 그룹핑된 성경책 조회
      * Use Case: 프론트엔드 탭 구성용 데이터 제공
      */
-    public Map<String, List<BookDto>> getGroupedBooksByTestament() {
+    public Map<String, List<BookQuery>> getGroupedBooksByTestament() {
         log.info("Getting books grouped by testament");
         
-        List<BookDto> oldTestamentBooks = getOldTestamentBooks();
-        List<BookDto> newTestamentBooks = getNewTestamentBooks();
+        List<BookQuery> oldTestamentBooks = getOldTestamentBooks();
+        List<BookQuery> newTestamentBooks = getNewTestamentBooks();
         
-        Map<String, List<BookDto>> grouped = new HashMap<>();
+        Map<String, List<BookQuery>> grouped = new HashMap<>();
         grouped.put("구약", oldTestamentBooks);
         grouped.put("신약", newTestamentBooks);
         
@@ -205,7 +205,7 @@ public class BookApplicationService {
      * 성경 통계 정보 조회
      * Use Case: 성경 통계 대시보드 표시
      */
-    public BibleStatisticsDto getBibleStatistics() {
+    public BibleStatisticsQuery getBibleStatistics() {
         log.info("Getting bible statistics");
         
         // 1. 데이터 조회 (Application Service 역할)
@@ -219,7 +219,7 @@ public class BookApplicationService {
         );
         
         // 3. DTO 변환 (Application Service 역할)
-        return BibleStatisticsDto.builder()
+        return BibleStatisticsQuery.builder()
                 .totalBooks(statistics.getTotalBooks())
                 .oldTestamentBooks(statistics.getOldTestamentBooks())
                 .newTestamentBooks(statistics.getNewTestamentBooks())

@@ -1,9 +1,10 @@
 package com.dong.bible.application.service;
 
-import com.dong.bible.application.dto.ChapterQueryDto;
-import com.dong.bible.application.dto.VerseQueryDto;
-import com.dong.bible.application.dto.VerseRangeQueryDto;
-import com.dong.bible.application.dto.VerseSearchDto;
+import com.dong.bible.application.dto.command.*;
+import com.dong.bible.application.dto.query.ChapterQuery;
+import com.dong.bible.application.dto.query.VerseQuery;
+import com.dong.bible.application.dto.query.VerseRangeQuery;
+import com.dong.bible.application.dto.query.VerseSearchQuery;
 import com.dong.bible.domain.book.Book;
 import com.dong.bible.domain.book.BookName;
 import com.dong.bible.domain.verse.BibleVerse;
@@ -82,7 +83,7 @@ class VerseApplicationServiceTest {
         when(bookApplicationService.getBookIdByName(bookName)).thenReturn(Optional.of(43));
 
         // When
-        ChapterQueryDto result = verseApplicationService.getChapter(bookName, chapter);
+        ChapterQuery result = verseApplicationService.getChapter(bookName, chapter);
 
         // Then
         assertThat(result.getBookId()).isEqualTo(43);
@@ -161,7 +162,8 @@ class VerseApplicationServiceTest {
         when(bibleVerseRepository.findByReference(expectedReference)).thenReturn(Optional.of(요한복음3장16절));
 
         // When
-        VerseQueryDto result = verseApplicationService.getVerse(bookId, chapter, verse);
+        VerseQueryCommand command = VerseQueryCommand.of(bookId, chapter, verse);
+        VerseQuery result = verseApplicationService.getVerse(command);
 
         // Then
         assertThat(result).isNotNull();
@@ -186,7 +188,8 @@ class VerseApplicationServiceTest {
         when(bibleVerseRepository.findByReference(expectedReference)).thenReturn(Optional.empty());
 
         // When & Then
-        assertThatThrownBy(() -> verseApplicationService.getVerse(bookId, chapter, verse))
+        VerseQueryCommand command = VerseQueryCommand.of(bookId, chapter, verse);
+        assertThatThrownBy(() -> verseApplicationService.getVerse(command))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Verse not found: 요한복음 3:999");
 
@@ -212,7 +215,7 @@ class VerseApplicationServiceTest {
         when(bookApplicationService.getBookIdByName(bookName)).thenReturn(Optional.of(43));
 
         // When
-        VerseRangeQueryDto result = verseApplicationService.getVerseRange(bookId, chapter, startVerse, endVerse);
+        VerseRangeQuery result = verseApplicationService.getVerseRange(bookId, chapter, startVerse, endVerse);
 
         // Then
         assertThat(result.getBookId()).isEqualTo(43);
@@ -260,7 +263,8 @@ class VerseApplicationServiceTest {
         when(verseSearchDomainService.searchByKeyword(allVerses, keyword)).thenReturn(searchedVerses);
 
         // When
-        VerseSearchDto result = verseApplicationService.searchVerses(keyword);
+        VerseSearchCommand command = VerseSearchCommand.of(keyword);
+        VerseSearchQuery result = verseApplicationService.searchVerses(command);
 
         // Then
         assertThat(result.getKeyword()).isEqualTo("하나님");
@@ -273,15 +277,15 @@ class VerseApplicationServiceTest {
     @Test
     void 텍스트_검색_키워드_없음_예외() {
         // When & Then
-        assertThatThrownBy(() -> verseApplicationService.searchVerses(null))
+        assertThatThrownBy(() -> verseApplicationService.searchVerses(VerseSearchCommand.of(null)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Search keyword cannot be empty");
 
-        assertThatThrownBy(() -> verseApplicationService.searchVerses(""))
+        assertThatThrownBy(() -> verseApplicationService.searchVerses(VerseSearchCommand.of("")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Search keyword cannot be empty");
 
-        assertThatThrownBy(() -> verseApplicationService.searchVerses("   "))
+        assertThatThrownBy(() -> verseApplicationService.searchVerses(VerseSearchCommand.of("   ")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Search keyword cannot be empty");
 
@@ -300,7 +304,7 @@ class VerseApplicationServiceTest {
         when(bibleVerseRepository.findById(verseId)).thenReturn(Optional.of(mockVerse));
 
         // When
-        VerseQueryDto result = verseApplicationService.getVerseById(verseId);
+        VerseQuery result = verseApplicationService.getVerseById(verseId);
 
         // Then
         assertThat(result).isNotNull();
@@ -336,7 +340,7 @@ class VerseApplicationServiceTest {
         when(bibleVerseRepository.findByBook(bookName)).thenReturn(verses);
 
         // When
-        List<VerseQueryDto> result = verseApplicationService.getBookVerses(bookId);
+        List<VerseQuery> result = verseApplicationService.getBookVerses(bookId);
 
         // Then
         assertThat(result).hasSize(2);
@@ -357,7 +361,7 @@ class VerseApplicationServiceTest {
         when(bibleVerseRepository.findByTestament(isNewTestament)).thenReturn(newTestamentVerses);
 
         // When
-        List<VerseQueryDto> result = verseApplicationService.getTestamentVerses(isNewTestament);
+        List<VerseQuery> result = verseApplicationService.getTestamentVerses(isNewTestament);
 
         // Then
         assertThat(result).hasSize(2);
@@ -378,7 +382,7 @@ class VerseApplicationServiceTest {
         when(bookApplicationService.getBookIdByName(bookName)).thenReturn(Optional.of(43));
 
         // When
-        ChapterQueryDto result = verseApplicationService.getChapterById(bookId, chapter);
+        ChapterQuery result = verseApplicationService.getChapterById(bookId, chapter);
 
         // Then
         assertThat(result.getBookId()).isEqualTo(43);

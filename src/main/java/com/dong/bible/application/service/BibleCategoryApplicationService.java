@@ -1,7 +1,7 @@
 package com.dong.bible.application.service;
 
-import com.dong.bible.application.dto.BibleCategoryDto;
-import com.dong.bible.application.dto.BookDto;
+import com.dong.bible.application.dto.query.BibleCategoryQuery;
+import com.dong.bible.application.dto.query.BookQuery;
 import com.dong.bible.ENUM.Testament;
 import com.dong.bible.domain.category.BibleCategory;
 import com.dong.bible.domain.category.BibleCategoryRepository;
@@ -34,7 +34,7 @@ public class BibleCategoryApplicationService {
     /**
      * 구약/신약별 분류 조회
      */
-    public List<BibleCategoryDto> getCategoriesByTestament(String testamentStr) {
+    public List<BibleCategoryQuery> getCategoriesByTestament(String testamentStr) {
         log.debug("Getting categories by testament: {}", testamentStr);
         
         Testament testament = Testament.fromString(testamentStr);
@@ -48,7 +48,7 @@ public class BibleCategoryApplicationService {
     /**
      * 전체 성경 구조 (분류별로 그룹핑)
      */
-    public Map<String, List<BibleCategoryDto>> getBibleStructure() {
+    public Map<String, List<BibleCategoryQuery>> getBibleStructure() {
         log.debug("Getting bible structure");
         
         List<BibleCategory> allCategories = categoryRepository.findAllByOrderByCategoryOrder();
@@ -61,7 +61,7 @@ public class BibleCategoryApplicationService {
     /**
      * 특정 분류의 책들 (ID로 조회)
      */
-    public List<BookDto> getBooksByCategory(Integer categoryId) {
+    public List<BookQuery> getBooksByCategory(Integer categoryId) {
         log.debug("Getting books by category: {}", categoryId);
         
         // Repository의 Optional 반환을 안전하게 처리
@@ -77,7 +77,7 @@ public class BibleCategoryApplicationService {
     /**
      * 카테고리명으로 조회
      */
-    public BibleCategoryDto getCategoryByName(String categoryName) {
+    public BibleCategoryQuery getCategoryByName(String categoryName) {
         log.debug("Getting category by name: {}", categoryName);
         
         BibleCategory category = categoryRepository.findByName(categoryName)
@@ -115,27 +115,27 @@ public class BibleCategoryApplicationService {
     /**
      * 간단한 카테고리 목록 (책 정보 없이)
      */
-    public List<BibleCategoryDto> getCategoriesSimple() {
+    public List<BibleCategoryQuery> getCategoriesSimple() {
         log.debug("Getting simple categories list");
         
         List<BibleCategory> categories = categoryRepository.findAllByOrderByCategoryOrder();
         
         return categories.stream()
-                .map(category -> BibleCategoryDto.from(category, List.of())) // 책 목록 없이
+                .map(category -> BibleCategoryQuery.from(category, List.of())) // 책 목록 없이
                 .collect(Collectors.toList());
     }
 
     /**
      * 특정 구약/신약의 간단한 카테고리 목록 (책 정보 없이)
      */
-    public List<BibleCategoryDto> getCategoriesSimpleByTestament(String testamentStr) {
+    public List<BibleCategoryQuery> getCategoriesSimpleByTestament(String testamentStr) {
         log.debug("Getting simple categories by testament: {}", testamentStr);
         
         Testament testament = Testament.fromString(testamentStr);
         List<BibleCategory> categories = categoryRepository.findByTestamentOrderByCategoryOrder(testament);
         
         return categories.stream()
-                .map(category -> BibleCategoryDto.from(category, List.of())) // 책 목록 없이
+                .map(category -> BibleCategoryQuery.from(category, List.of())) // 책 목록 없이
                 .collect(Collectors.toList());
     }
 
@@ -143,13 +143,13 @@ public class BibleCategoryApplicationService {
      * Domain 객체를 Application DTO로 변환하는 헬퍼 메서드
      * 책 목록도 함께 조회하여 완전한 DTO 생성
      */
-    private BibleCategoryDto buildCategoryDtoWithBooks(BibleCategory category) {
+    private BibleCategoryQuery buildCategoryDtoWithBooks(BibleCategory category) {
         // 카테고리 내 책들 조회
-        List<BookDto> books = category.getBookIds().stream()
+        List<BookQuery> books = category.getBookIds().stream()
                 .map(bookApplicationService::getBookById)
                 .collect(Collectors.toList());
         
         // DTO 정적 팩토리 메서드 사용 (변환은 DTO가 담당)
-        return BibleCategoryDto.from(category, books);
+        return BibleCategoryQuery.from(category, books);
     }
 }

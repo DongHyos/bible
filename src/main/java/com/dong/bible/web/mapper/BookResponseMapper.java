@@ -1,9 +1,9 @@
 package com.dong.bible.web.mapper;
 
-import com.dong.bible.application.dto.BookDto;
-import com.dong.bible.application.dto.BibleStatisticsDto;
+import com.dong.bible.application.dto.query.BookQuery;
+import com.dong.bible.application.dto.query.BibleStatisticsQuery;
 import com.dong.bible.ENUM.Testament;
-import com.dong.bible.web.dto.response.BibleBookDto;
+import com.dong.bible.web.dto.response.BibleBookResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -25,14 +25,14 @@ public class BookResponseMapper {
     // ========================================
     
     /**
-     * BookDto → BibleBookDto 변환
+     * BookQuery → BibleBookResponse 변환
      */
-    public BibleBookDto fromBookDto(BookDto bookDto) {
+    public BibleBookResponse fromBookQuery(BookQuery bookDto) {
         if (bookDto == null) {
             return null;
         }
         
-        return BibleBookDto.builder()
+        return BibleBookResponse.builder()
                 .id(bookDto.getId() != null ? bookDto.getId().intValue() : null)
                 .name(bookDto.getName())
                 .abbr(bookDto.getAbbreviation())
@@ -45,34 +45,34 @@ public class BookResponseMapper {
     }
     
     /**
-     * List<BookDto> → List<BibleBookDto> 변환
+     * List<BookQuery> → List<BibleBookResponse> 변환
      */
-    public List<BibleBookDto> fromBookDtoList(List<BookDto> bookDtos) {
+    public List<BibleBookResponse> fromBookQueryList(List<BookQuery> bookDtos) {
         if (bookDtos == null) {
             return Collections.emptyList();
         }
         
         return bookDtos.stream()
-                .map(this::fromBookDto)
+                .map(this::fromBookQuery)
                 .filter(dto -> dto != null)
                 .toList();
     }
     
     /**
-     * Map<String, List<BookDto>> → Map<String, List<BibleBookDto>> 변환
+     * Map<String, List<BookQuery>> → Map<String, List<BibleBookResponse>> 변환
      * 그룹핑된 성경책 데이터 변환
      */
-    public Map<String, List<BibleBookDto>> fromGroupedBooks(Map<String, List<BookDto>> groupedBooks) {
+    public Map<String, List<BibleBookResponse>> fromGroupedBooks(Map<String, List<BookQuery>> groupedBooks) {
         if (groupedBooks == null) {
             return Collections.emptyMap();
         }
         
-        Map<String, List<BibleBookDto>> result = new HashMap<>();
+        Map<String, List<BibleBookResponse>> result = new HashMap<>();
         
-        for (Map.Entry<String, List<BookDto>> entry : groupedBooks.entrySet()) {
+        for (Map.Entry<String, List<BookQuery>> entry : groupedBooks.entrySet()) {
             String testament = entry.getKey();
-            List<BookDto> books = entry.getValue();
-            List<BibleBookDto> convertedBooks = fromBookDtoList(books);
+            List<BookQuery> books = entry.getValue();
+            List<BibleBookResponse> convertedBooks = fromBookQueryList(books);
             result.put(testament, convertedBooks);
         }
         
@@ -80,10 +80,10 @@ public class BookResponseMapper {
     }
     
     /**
-     * BibleStatisticsDto → Map<String, Integer> 변환
+     * BibleStatisticsQuery → Map<String, Integer> 변환
      * 통계 데이터를 기존 API 호환 형태로 변환
      */
-    public Map<String, Integer> fromStatisticsDto(BibleStatisticsDto statisticsDto) {
+    public Map<String, Integer> fromStatisticsDto(BibleStatisticsQuery statisticsDto) {
         if (statisticsDto == null) {
             return Collections.emptyMap();
         }

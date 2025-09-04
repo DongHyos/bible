@@ -1,14 +1,14 @@
 package com.dong.bible.web.mapper;
 
-import com.dong.bible.application.dto.ChapterQueryDto;
-import com.dong.bible.application.dto.VerseQueryDto;
-import com.dong.bible.application.dto.VerseRangeQueryDto;
-import com.dong.bible.application.dto.VerseSearchDto;
-import com.dong.bible.web.dto.response.ChapterDto;
-import com.dong.bible.web.dto.response.VerseDto;
-import com.dong.bible.web.dto.response.VerseRangeResponseDto;
-import com.dong.bible.web.dto.response.VerseSearchResultDto;
-import com.dong.bible.web.dto.response.VerseSimpleDto;
+import com.dong.bible.application.dto.query.ChapterQuery;
+import com.dong.bible.application.dto.query.VerseQuery;
+import com.dong.bible.application.dto.query.VerseRangeQuery;
+import com.dong.bible.application.dto.query.VerseSearchQuery;
+import com.dong.bible.web.dto.response.ChapterResponse;
+import com.dong.bible.web.dto.response.VerseResponse;
+import com.dong.bible.web.dto.response.VerseRangeResponse;
+import com.dong.bible.web.dto.response.VerseSearchResponse;
+import com.dong.bible.web.dto.response.VerseSimpleResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -28,15 +28,15 @@ import java.util.stream.Collectors;
 public class VerseResponseMapper {
 
     /**
-     * VerseQueryDto → VerseDto 매핑 (Builder 패턴)
+     * VerseQuery → VerseResponse 매핑 (Builder 패턴)
      */
-    public VerseDto toVerseDto(VerseQueryDto queryDto) {
+    public VerseResponse toVerseResponse(VerseQuery queryDto) {
         if (queryDto == null) {
-            log.warn("VerseQueryDto is null");
+            log.warn("VerseQuery is null");
             return null;
         }
 
-        return VerseDto.builder()
+        return VerseResponse.builder()
                 .id(queryDto.getId() != null ? queryDto.getId().intValue() : null)
                 .bookId(queryDto.getBookId())
                 .bookName(queryDto.getBookName())
@@ -49,23 +49,23 @@ public class VerseResponseMapper {
     }
 
     /**
-     * ChapterQueryDto → ChapterDto 매핑 (Builder 패턴)
+     * ChapterQuery → ChapterResponse 매핑 (Builder 패턴)
      */
-    public ChapterDto toChapterDto(ChapterQueryDto queryDto) {
+    public ChapterResponse toChapterResponse(ChapterQuery queryDto) {
         if (queryDto == null) {
-            log.warn("ChapterQueryDto is null");
+            log.warn("ChapterQuery is null");
             return null;
         }
 
-        // VerseQueryDto → VerseSimpleDto 변환
-        List<VerseSimpleDto> simpleVerses = queryDto.getVerses().stream()
-                .map(this::toVerseSimpleDto)
+        // VerseQuery → VerseSimpleResponse 변환
+        List<VerseSimpleResponse> simpleVerses = queryDto.getVerses().stream()
+                .map(this::toVerseSimpleResponse)
                 .collect(Collectors.toList());
 
-        log.debug("Mapping ChapterQueryDto: book={}, chapter={}, verses={}", 
+        log.debug("Mapping ChapterQuery: book={}, chapter={}, verses={}", 
                  queryDto.getBookName(), queryDto.getChapter(), simpleVerses.size());
 
-        return ChapterDto.builder()
+        return ChapterResponse.builder()
                 .bookId(queryDto.getBookId())
                 .bookName(queryDto.getBookName())
                 .bookAbbr(queryDto.getBookAbbr())
@@ -76,23 +76,23 @@ public class VerseResponseMapper {
     }
 
     /**
-     * VerseRangeQueryDto → VerseRangeResponseDto 매핑 (Builder 패턴)
+     * VerseRangeQuery → VerseRangeResponse 매핑 (Builder 패턴)
      */
-    public VerseRangeResponseDto toVerseRangeDto(VerseRangeQueryDto queryDto) {
+    public VerseRangeResponse toVerseRangeResponse(VerseRangeQuery queryDto) {
         if (queryDto == null) {
-            log.warn("VerseRangeQueryDto is null");
+            log.warn("VerseRangeQuery is null");
             return null;
         }
 
-        // VerseQueryDto → VerseDto 변환
-        List<VerseDto> verses = queryDto.getVerses().stream()
-                .map(this::toVerseDto)
+        // VerseQuery → VerseResponse 변환
+        List<VerseResponse> verses = queryDto.getVerses().stream()
+                .map(this::toVerseResponse)
                 .collect(Collectors.toList());
 
-        log.debug("Mapping VerseRangeQueryDto: range={}-{}, verses={}", 
+        log.debug("Mapping VerseRangeQuery: range={}-{}, verses={}", 
                  queryDto.getStartVerse(), queryDto.getEndVerse(), verses.size());
 
-        return VerseRangeResponseDto.builder()
+        return VerseRangeResponse.builder()
                 .bookId(queryDto.getBookId())
                 .bookName(queryDto.getBookName())
                 .bookAbbr(queryDto.getBookAbbr())
@@ -106,39 +106,39 @@ public class VerseResponseMapper {
     }
 
     /**
-     * VerseSearchDto → List<VerseSearchResultDto> 매핑 (Builder 패턴)
+     * VerseSearchQuery → List<VerseSearchResponse> 매핑 (Builder 패턴)
      */
-    public List<VerseSearchResultDto> toSearchResultDtoList(VerseSearchDto searchDto) {
+    public List<VerseSearchResponse> toSearchResultDtoList(VerseSearchQuery searchDto) {
         if (searchDto == null) {
-            log.warn("VerseSearchDto is null");
+            log.warn("VerseSearchQuery is null");
             return List.of();
         }
 
         if (searchDto.getVerses() == null) {
-            log.warn("VerseSearchDto.verses is null");
+            log.warn("VerseSearchQuery.verses is null");
             return List.of();
         }
 
-        List<VerseSearchResultDto> results = searchDto.getVerses().stream()
+        List<VerseSearchResponse> results = searchDto.getVerses().stream()
                 .map(this::toSearchResultDto)
                 .collect(Collectors.toList());
 
-        log.debug("Mapping VerseSearchDto: keyword='{}', results={}", 
+        log.debug("Mapping VerseSearchQuery: keyword='{}', results={}", 
                  searchDto.getKeyword(), results.size());
 
         return results;
     }
 
     /**
-     * VerseQueryDto → VerseSimpleDto 매핑 (Builder 패턴)
+     * VerseQuery → VerseSimpleResponse 매핑 (Builder 패턴)
      * Chapter 응답용 간소화된 구절 정보
      */
-    private VerseSimpleDto toVerseSimpleDto(VerseQueryDto queryDto) {
+    private VerseSimpleResponse toVerseSimpleResponse(VerseQuery queryDto) {
         if (queryDto == null) {
             return null;
         }
 
-        return VerseSimpleDto.builder()
+        return VerseSimpleResponse.builder()
                 .id(queryDto.getId() != null ? queryDto.getId().intValue() : null)
                 .verse(queryDto.getVerse())
                 .text(queryDto.getText())
@@ -146,21 +146,21 @@ public class VerseResponseMapper {
     }
 
     /**
-     * VerseQueryDto → VerseSearchResultDto 매핑 (Builder 패턴)
+     * VerseQuery → VerseSearchResponse 매핑 (Builder 패턴)
      * 검색 결과용 구절 정보
      */
-    private VerseSearchResultDto toSearchResultDto(VerseQueryDto queryDto) {
+    private VerseSearchResponse toSearchResultDto(VerseQuery queryDto) {
         if (queryDto == null) {
             return null;
         }
 
-        return VerseSearchResultDto.builder()
-                .id(queryDto.getId() != null ? queryDto.getId().intValue() : null)
+        return VerseSearchResponse.builder()
+                .id(queryDto.getId() != null ? queryDto.getId().toString() : null)
                 .bookName(queryDto.getBookName())
                 .chapter(queryDto.getChapter())
                 .verse(queryDto.getVerse())
-                .text(queryDto.getText())
-                .reference(queryDto.getReference())
+                .content(queryDto.getText())
+                .displayReference(queryDto.getReference())
                 .build();
     }
 

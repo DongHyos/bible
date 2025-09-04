@@ -1,6 +1,6 @@
 package com.dong.bible.web.mapper;
 
-import com.dong.bible.application.dto.VerseSearchResultDto;
+import com.dong.bible.application.dto.query.VerseSearchResultQuery;
 import com.dong.bible.web.dto.response.VerseSearchResponse;
 import org.springframework.stereotype.Component;
 
@@ -17,7 +17,7 @@ public class VerseSearchResponseMapper {
     /**
      * Application DTO → Web Response DTO 변환
      */
-    public VerseSearchResponse toResponse(VerseSearchResultDto dto) {
+    public VerseSearchResponse toResponse(VerseSearchResultQuery dto) {
         return VerseSearchResponse.builder()
                 .id(dto.getId())
                 .bookId(dto.getBookId())
@@ -32,7 +32,7 @@ public class VerseSearchResponseMapper {
     /**
      * Application DTO 리스트 → Web Response DTO 리스트 변환
      */
-    public List<VerseSearchResponse> toResponseList(List<VerseSearchResultDto> dtoList) {
+    public List<VerseSearchResponse> toResponseList(List<VerseSearchResultQuery> dtoList) {
         return dtoList.stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());

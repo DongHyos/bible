@@ -1,9 +1,10 @@
 package com.dong.bible.application.service;
 
-import com.dong.bible.application.dto.ChapterQueryDto;
-import com.dong.bible.application.dto.VerseQueryDto;
-import com.dong.bible.application.dto.VerseRangeQueryDto;
-import com.dong.bible.application.dto.VerseSearchDto;
+import com.dong.bible.application.dto.command.*;
+import com.dong.bible.application.dto.query.ChapterQuery;
+import com.dong.bible.application.dto.query.VerseQuery;
+import com.dong.bible.application.dto.query.VerseRangeQuery;
+import com.dong.bible.application.dto.query.VerseSearchQuery;
 import com.dong.bible.domain.book.Book;
 import com.dong.bible.domain.verse.BibleVerse;
 import com.dong.bible.domain.verse.BibleVerseRepository;
@@ -40,7 +41,7 @@ public class VerseApplicationService {
      * 특정 장의 모든 구절 조회 UseCase (완전 도메인 중심)
      */
     @Cacheable(value = "chapterVerses", key = "#bookName + '_' + #chapter")
-    public ChapterQueryDto getChapter(String bookName, Integer chapter) {
+    public ChapterQuery getChapter(String bookName, Integer chapter) {
         log.debug("Getting chapter: book='{}', chapter={}", bookName, chapter);
 
         // 1. 입력 검증 및 Book 도메인 조회
@@ -61,26 +62,31 @@ public class VerseApplicationService {
         Integer bookId = bookApplicationService.getBookIdByName(book.getBookName().getName()).orElse(null);
 
         // 5. DTO 변환 및 반환
-        return ChapterQueryDto.of(bookId, book.getBookName().getName(), chapter, verses);
+        return ChapterQuery.of(bookId, book.getBookName().getName(), chapter, verses);
     }
 
     /**
      * 특정 구절 조회 UseCase (Web Layer에서 호출)
      */
-    public VerseQueryDto getVerse(Integer bookId, Integer chapter, Integer verse) {
-        log.debug("Getting verse: bookId={}, chapter={}, verse={}", bookId, chapter, verse);
+    public VerseQuery getVerse(VerseQueryCommand command) {
+        log.debug("Getting verse with command: {}", command);
 
-        // 1. BookApplicationService로 bookId → bookName 변환 + 검증
-        String bookName = bookApplicationService.getBookNameById(bookId);
+        // 1. 입력 검증
+        if (!command.isValid()) {
+            throw new IllegalArgumentException("Invalid verse query command: " + command);
+        }
 
-        // 2. 도메인 중심 메서드 호출
-        return getVerseByName(bookName, chapter, verse);
+        // 2. BookApplicationService로 bookId → bookName 변환 + 검증
+        String bookName = bookApplicationService.getBookNameById(command.getBookId());
+
+        // 3. 도메인 중심 메서드 호출
+        return getVerseByName(bookName, command.getChapter(), command.getVerse());
     }
 
     /**
      * 특정 구절 조회 UseCase (완전 도메인 중심) - 내부 메서드
      */
-    private VerseQueryDto getVerseByName(String bookName, Integer chapter, Integer verse) {
+    private VerseQuery getVerseByName(String bookName, Integer chapter, Integer verse) {
         log.debug("Getting verse: book='{}', chapter={}, verse={}", bookName, chapter, verse);
 
         // 1. 입력 검증 및 Book 도메인 조회
@@ -98,13 +104,13 @@ public class VerseApplicationService {
                     "Verse not found: " + reference.toDisplayString()));
 
         // 5. DTO 변환 및 반환
-        return VerseQueryDto.of(bibleVerse);
+        return VerseQuery.of(bibleVerse);
     }
 
     /**
      * 구절 범위 조회 UseCase (Web Layer에서 호출)
      */
-    public VerseRangeQueryDto getVerseRange(Integer bookId, Integer chapter, Integer fromVerse, Integer toVerse) {
+    public VerseRangeQuery getVerseRange(Integer bookId, Integer chapter, Integer fromVerse, Integer toVerse) {
         log.debug("Getting verse range: bookId={}, chapter={}, verses={}-{}",
                  bookId, chapter, fromVerse, toVerse);
 
@@ -118,7 +124,7 @@ public class VerseApplicationService {
     /**
      * 구절 범위 조회 UseCase (완전 도메인 중심) - 내부 메서드
      */
-    private VerseRangeQueryDto getVerseRangeByName(String bookName, Integer chapter, Integer startVerse, Integer endVerse) {
+    private VerseRangeQuery getVerseRangeByName(String bookName, Integer chapter, Integer startVerse, Integer endVerse) {
         log.debug("Getting verse range: book='{}', chapter={}, verses={}-{}",
                  bookName, chapter, startVerse, endVerse);
 
@@ -142,7 +148,7 @@ public class VerseApplicationService {
         Integer bookId = bookApplicationService.getBookIdByName(book.getBookName().getName()).orElse(null);
 
         // 5. DTO 변환 및 반환
-        return VerseRangeQueryDto.of(bookId, chapter, startVerse, endVerse, verses);
+        return VerseRangeQuery.of(bookId, chapter, startVerse, endVerse, verses);
     }
 
 
@@ -150,15 +156,15 @@ public class VerseApplicationService {
     /**
      * 텍스트 검색 UseCase
      */
-    public VerseSearchDto searchVerses(String keyword) {
-        log.debug("Searching verses with keyword: '{}'", keyword);
+    public VerseSearchQuery searchVerses(VerseSearchCommand command) {
+        log.debug("Searching verses with command: {}", command);
 
         // 1. 입력 검증
-        if (keyword == null || keyword.trim().isEmpty()) {
+        if (!command.hasValidKeyword()) {
             throw new IllegalArgumentException("Search keyword cannot be empty");
         }
 
-        String trimmedKeyword = keyword.trim();
+        String trimmedKeyword = command.getKeyword().trim();
 
         // 2. 데이터 조회 (Application Service 역할)
         // TODO: 현재 BibleVerseRepository에 findByTextContaining 메서드 없음
@@ -171,13 +177,13 @@ public class VerseApplicationService {
         log.info("Found {} verses for keyword: '{}'", matchedVerses.size(), trimmedKeyword);
 
         // 4. DTO 변환 및 반환 (Application Service 역할)
-        return VerseSearchDto.of(trimmedKeyword, matchedVerses);
+        return VerseSearchQuery.of(trimmedKeyword, matchedVerses);
     }
 
     /**
      * ID 기반 구절 조회 (하위 호환성 - Web Layer에서 사용)
      */
-    public VerseQueryDto getVerseById(Long id) {
+    public VerseQuery getVerseById(Long id) {
         log.debug("Getting verse by id: {}", id);
 
         if (id == null) {
@@ -187,13 +193,13 @@ public class VerseApplicationService {
         BibleVerse bibleVerse = bibleVerseRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Verse not found with id: " + id));
 
-        return VerseQueryDto.of(bibleVerse);
+        return VerseQuery.of(bibleVerse);
     }
 
     /**
      * 책의 모든 구절 조회 UseCase (Web Layer에서 호출)
      */
-    public List<VerseQueryDto> getBookVerses(Integer bookId) {
+    public List<VerseQuery> getBookVerses(Integer bookId) {
         log.debug("Getting book verses: bookId={}", bookId);
 
         // 1. BookApplicationService로 bookId → bookName 변환 + 검증
@@ -206,7 +212,7 @@ public class VerseApplicationService {
     /**
      * 책의 모든 구절 조회 UseCase (도메인 검증 강화) - 내부 메서드
      */
-    private List<VerseQueryDto> getBookVersesByName(String bookName) {
+    private List<VerseQuery> getBookVersesByName(String bookName) {
         log.debug("Getting all verses for book: '{}'", bookName);
 
         // 1. Book 도메인 검증
@@ -218,27 +224,27 @@ public class VerseApplicationService {
         log.info("Found {} verses for book: '{}'", verses.size(), book.getBookName().getName());
 
         return verses.stream()
-                .map(VerseQueryDto::of)
+                .map(VerseQuery::of)
                 .toList();
     }
 
     /**
      * 신약/구약 구절 조회 UseCase
      */
-    public List<VerseQueryDto> getTestamentVerses(boolean isNewTestament) {
+    public List<VerseQuery> getTestamentVerses(boolean isNewTestament) {
         log.debug("Getting {} verses", isNewTestament ? "New Testament" : "Old Testament");
 
         List<BibleVerse> verses = bibleVerseRepository.findByTestament(isNewTestament);
 
         return verses.stream()
-                .map(VerseQueryDto::of)
+                .map(VerseQuery::of)
                 .toList();
     }
 
     /**
      * bookId로 bookName 조회 후 장 조회 (Web Layer에서 호출)
      */
-    public ChapterQueryDto getChapterById(Integer bookId, Integer chapter) {
+    public ChapterQuery getChapterById(Integer bookId, Integer chapter) {
         log.debug("Getting chapter by bookId: bookId={}, chapter={}", bookId, chapter);
 
         // 1. BookApplicationService로 bookId → bookName 변환 + 검증

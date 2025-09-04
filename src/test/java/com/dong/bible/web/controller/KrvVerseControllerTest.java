@@ -2,10 +2,11 @@ package com.dong.bible.web.controller;
 
 import com.dong.bible.application.service.BookApplicationService;
 import com.dong.bible.application.service.VerseApplicationService;
-import com.dong.bible.application.dto.ChapterQueryDto;
-import com.dong.bible.application.dto.VerseQueryDto;
-import com.dong.bible.application.dto.VerseRangeQueryDto;
-import com.dong.bible.application.dto.VerseSearchDto;
+import com.dong.bible.application.dto.command.*;
+import com.dong.bible.application.dto.query.ChapterQuery;
+import com.dong.bible.application.dto.query.VerseQuery;
+import com.dong.bible.application.dto.query.VerseRangeQuery;
+import com.dong.bible.application.dto.query.VerseSearchQuery;
 import com.dong.bible.common.AppProperties;
 import com.dong.bible.common.error.BizException;
 import com.dong.bible.common.response.ResponseCode;
@@ -13,10 +14,10 @@ import com.dong.bible.common.utils.ApplicationContextProvider;
 import com.dong.bible.domain.verse.BibleVerse;
 import com.dong.bible.domain.verse.VerseContent;
 import com.dong.bible.domain.verse.VerseReference;
-import com.dong.bible.web.dto.response.ChapterDto;
-import com.dong.bible.web.dto.response.VerseDto;
-import com.dong.bible.web.dto.response.VerseSearchResultDto;
-import com.dong.bible.web.dto.response.VerseSimpleDto;
+import com.dong.bible.web.dto.response.ChapterResponse;
+import com.dong.bible.web.dto.response.VerseResponse;
+import com.dong.bible.web.dto.response.VerseSearchResponse;
+import com.dong.bible.web.dto.response.VerseSimpleResponse;
 import com.dong.bible.web.mapper.VerseResponseMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -114,11 +115,11 @@ class KrvVerseControllerTest {
         Integer bookId = 43;
         Integer chapter = 3;
         
-        ChapterQueryDto chapterQuery = createMockChapterQueryDto(bookId, "요한복음", chapter);
-        ChapterDto chapterDto = createMockChapterDto(bookId, "요한복음", chapter);
+        ChapterQuery chapterQuery = createMockChapterQuery(bookId, "요한복음", chapter);
+        ChapterResponse chapterDto = createMockChapterDto(bookId, "요한복음", chapter);
         
         when(verseApplicationService.getChapterById(bookId, chapter)).thenReturn(chapterQuery);
-        when(verseResponseMapper.toChapterDto(chapterQuery)).thenReturn(chapterDto);
+        when(verseResponseMapper.toChapterResponse(chapterQuery)).thenReturn(chapterDto);
 
         // When & Then
         mockMvc.perform(get("/api/bible/books/{bookId}/chapters/{chapter}", bookId, chapter))
@@ -141,12 +142,12 @@ class KrvVerseControllerTest {
         Integer verse = 16;
         String bookName = "요한복음";
         
-        VerseQueryDto verseQuery = createMockVerseQueryDto(bookId, bookName, chapter, verse);
-        VerseDto verseDto = createMockVerseDto(bookId, bookName, chapter, verse);
+        VerseQuery verseQuery = createMockVerseQuery(bookId, bookName, chapter, verse);
+        VerseResponse verseDto = createMockVerseDto(bookId, bookName, chapter, verse);
         
         // Controller에서 getVerse() 호출하므로 이 메서드를 Mock해야 함
-        when(verseApplicationService.getVerse(bookId, chapter, verse)).thenReturn(verseQuery);
-        when(verseResponseMapper.toVerseDto(verseQuery)).thenReturn(verseDto);
+        when(verseApplicationService.getVerse(any(VerseQueryCommand.class))).thenReturn(verseQuery);
+        when(verseResponseMapper.toVerseResponse(verseQuery)).thenReturn(verseDto);
 
         // When & Then
         mockMvc.perform(get("/api/bible/books/{bookId}/chapters/{chapter}/verses/{verse}", 
@@ -170,7 +171,7 @@ class KrvVerseControllerTest {
         Integer verse = 16;
         
         // IllegalArgumentException이 던져지도록 Mock 설정 (BizException에서 IllegalArgumentException으로 변경됨)
-        when(verseApplicationService.getVerse(bookId, chapter, verse))
+        when(verseApplicationService.getVerse(any(VerseQueryCommand.class)))
                 .thenThrow(new BizException(ResponseCode.REQ_BAD_REQUEST, "Book not found with id: " + bookId));
 
         // When & Then
@@ -195,12 +196,12 @@ class KrvVerseControllerTest {
         Integer toVerse = 17;
         String bookName = "요한복음";
         
-        VerseRangeQueryDto rangeQuery = createMockVerseRangeQueryDto(bookId, bookName, chapter, fromVerse, toVerse);
-        List<VerseDto> verseDtos = createMockVerseDtoList();
+        VerseRangeQuery rangeQuery = createMockVerseRangeQuery(bookId, bookName, chapter, fromVerse, toVerse);
+        List<VerseResponse> verseDtos = createMockVerseDtoList();
         
         // Controller에서 getVerseRange() 호출하므로 이 메서드를 Mock해야 함
         when(verseApplicationService.getVerseRange(bookId, chapter, fromVerse, toVerse)).thenReturn(rangeQuery);
-        when(verseResponseMapper.toVerseDto(any(VerseQueryDto.class))).thenReturn(verseDtos.get(0), verseDtos.get(1));
+        when(verseResponseMapper.toVerseResponse(any(VerseQuery.class))).thenReturn(verseDtos.get(0), verseDtos.get(1));
 
         // When & Then
         mockMvc.perform(get("/api/bible/verses")
@@ -248,10 +249,10 @@ class KrvVerseControllerTest {
     void 구절_검색_성공() throws Exception {
         // Given
         String keyword = "사랑";
-        VerseSearchDto searchResult = createMockVerseSearchDto(keyword);
-        List<VerseSearchResultDto> searchResultDtos = createMockVerseSearchResultDtoList();
+        VerseSearchQuery searchResult = createMockVerseSearchQuery(keyword);
+        List<VerseSearchResponse> searchResultDtos = createMockVerseSearchResultQueryList();
         
-        when(verseApplicationService.searchVerses(keyword)).thenReturn(searchResult);
+        when(verseApplicationService.searchVerses(any(VerseSearchCommand.class))).thenReturn(searchResult);
         when(verseResponseMapper.toSearchResultDtoList(searchResult)).thenReturn(searchResultDtos);
 
         String requestBody = """
@@ -270,7 +271,7 @@ class KrvVerseControllerTest {
                 .andExpect(jsonPath("$.code").value("S000"))
                 .andExpect(jsonPath("$.payload").isArray())
                 .andExpect(jsonPath("$.payload.length()").value(2))
-                .andExpect(jsonPath("$.payload[0].text").value("하나님이 세상을 이처럼 사랑하사"));
+                .andExpect(jsonPath("$.payload[0].content").value("하나님이 세상을 이처럼 사랑하사"));
     }
 
     @Test
@@ -278,12 +279,12 @@ class KrvVerseControllerTest {
         // Given
         Integer bookId = 43;
         String bookName = "요한복음";
-        List<VerseQueryDto> verseQueries = createMockVerseQueryDtoList();
-        List<VerseDto> verseDtos = createMockVerseDtoList();
+        List<VerseQuery> verseQueries = createMockVerseQueryList();
+        List<VerseResponse> verseDtos = createMockVerseDtoList();
         
         // Controller에서 getBookVerses() 호출하므로 이 메서드를 Mock해야 함
         when(verseApplicationService.getBookVerses(bookId)).thenReturn(verseQueries);
-        when(verseResponseMapper.toVerseDto(any(VerseQueryDto.class))).thenReturn(verseDtos.get(0), verseDtos.get(1));
+        when(verseResponseMapper.toVerseResponse(any(VerseQuery.class))).thenReturn(verseDtos.get(0), verseDtos.get(1));
 
         // When & Then
         mockMvc.perform(get("/api/bible/books/{bookId}/verses", bookId))
@@ -299,38 +300,38 @@ class KrvVerseControllerTest {
     // Mock 데이터 생성 헬퍼 메서드들
     // ===============================
 
-    private ChapterQueryDto createMockChapterQueryDto(Integer bookId, String bookName, Integer chapter) {
+    private ChapterQuery createMockChapterQuery(Integer bookId, String bookName, Integer chapter) {
         List<BibleVerse> verses = Arrays.asList(
             BibleVerse.of(VerseReference.of(bookName, chapter, 16), VerseContent.of("하나님이 세상을 이처럼 사랑하사")),
             BibleVerse.of(VerseReference.of(bookName, chapter, 17), VerseContent.of("하나님이 그 아들을 세상에 보내신 것은"))
         );
-        return ChapterQueryDto.of(bookId, bookName, chapter, verses);
+        return ChapterQuery.of(bookId, bookName, chapter, verses);
     }
 
-    private ChapterDto createMockChapterDto(Integer bookId, String bookName, Integer chapter) {
-        return ChapterDto.builder()
+    private ChapterResponse createMockChapterDto(Integer bookId, String bookName, Integer chapter) {
+        return ChapterResponse.builder()
                 .bookId(bookId)
                 .bookName(bookName)
                 .bookAbbr("요")
                 .chapter(chapter)
                 .totalVerses(2)
                 .verses(Arrays.asList(
-                    VerseSimpleDto.builder().id(1).verse(16).text("하나님이 세상을 이처럼 사랑하사").build(),
-                    VerseSimpleDto.builder().id(2).verse(17).text("하나님이 그 아들을 세상에 보내신 것은").build()
+                    VerseSimpleResponse.builder().id(1).verse(16).text("하나님이 세상을 이처럼 사랑하사").build(),
+                    VerseSimpleResponse.builder().id(2).verse(17).text("하나님이 그 아들을 세상에 보내신 것은").build()
                 ))
                 .build();
     }
 
-    private VerseQueryDto createMockVerseQueryDto(Integer bookId, String bookName, Integer chapter, Integer verse) {
-        return VerseQueryDto.of(
+    private VerseQuery createMockVerseQuery(Integer bookId, String bookName, Integer chapter, Integer verse) {
+        return VerseQuery.of(
             BibleVerse.of(123L, 
                 VerseReference.of(bookName, chapter, verse), 
                 VerseContent.of("하나님이 세상을 이처럼 사랑하사"))
         );
     }
 
-    private VerseDto createMockVerseDto(Integer bookId, String bookName, Integer chapter, Integer verse) {
-        return VerseDto.builder()
+    private VerseResponse createMockVerseDto(Integer bookId, String bookName, Integer chapter, Integer verse) {
+        return VerseResponse.builder()
                 .id(123)
                 .bookId(bookId)
                 .bookName(bookName)
@@ -341,53 +342,53 @@ class KrvVerseControllerTest {
                 .build();
     }
 
-    private VerseRangeQueryDto createMockVerseRangeQueryDto(Integer bookId, String bookName, Integer chapter, Integer fromVerse, Integer toVerse) {
+    private VerseRangeQuery createMockVerseRangeQuery(Integer bookId, String bookName, Integer chapter, Integer fromVerse, Integer toVerse) {
         List<BibleVerse> verses = Arrays.asList(
             BibleVerse.of(VerseReference.of(bookName, chapter, fromVerse), VerseContent.of("하나님이 세상을 이처럼 사랑하사")),
             BibleVerse.of(VerseReference.of(bookName, chapter, toVerse), VerseContent.of("하나님이 그 아들을 세상에 보내신 것은"))
         );
-        return VerseRangeQueryDto.of(bookId, chapter, fromVerse, toVerse, verses);
+        return VerseRangeQuery.of(bookId, chapter, fromVerse, toVerse, verses);
     }
 
-    private VerseSearchDto createMockVerseSearchDto(String keyword) {
+    private VerseSearchQuery createMockVerseSearchQuery(String keyword) {
         List<BibleVerse> verses = Arrays.asList(
             BibleVerse.of(VerseReference.of("요한복음", 3, 16), VerseContent.of("하나님이 세상을 이처럼 사랑하사")),
             BibleVerse.of(VerseReference.of("요한일서", 4, 8), VerseContent.of("사랑하지 아니하는 자는 하나님을 알지 못하나니"))
         );
-        return VerseSearchDto.of(keyword, verses);
+        return VerseSearchQuery.of(keyword, verses);
     }
 
-    private List<VerseQueryDto> createMockVerseQueryDtoList() {
+    private List<VerseQuery> createMockVerseQueryList() {
         return Arrays.asList(
-            createMockVerseQueryDto(43, "요한복음", 3, 16),
-            createMockVerseQueryDto(43, "요한복음", 3, 17)
+            createMockVerseQuery(43, "요한복음", 3, 16),
+            createMockVerseQuery(43, "요한복음", 3, 17)
         );
     }
 
-    private List<VerseDto> createMockVerseDtoList() {
+    private List<VerseResponse> createMockVerseDtoList() {
         return Arrays.asList(
             createMockVerseDto(43, "요한복음", 3, 16),
             createMockVerseDto(43, "요한복음", 3, 17)
         );
     }
 
-    private List<VerseSearchResultDto> createMockVerseSearchResultDtoList() {
+    private List<VerseSearchResponse> createMockVerseSearchResultQueryList() {
         return Arrays.asList(
-            VerseSearchResultDto.builder()
-                .id(123)
+            VerseSearchResponse.builder()
+                .id("123")
                 .bookName("요한복음")
                 .chapter(3)
                 .verse(16)
-                .text("하나님이 세상을 이처럼 사랑하사")
-                .reference("요한복음 3:16")
+                .content("하나님이 세상을 이처럼 사랑하사")
+                .displayReference("요한복음 3:16")
                 .build(),
-            VerseSearchResultDto.builder()
-                .id(456)
+            VerseSearchResponse.builder()
+                .id("456")
                 .bookName("요한일서")
                 .chapter(4)
                 .verse(8)
-                .text("사랑하지 아니하는 자는 하나님을 알지 못하나니")
-                .reference("요한일서 4:8")
+                .content("사랑하지 아니하는 자는 하나님을 알지 못하나니")
+                .displayReference("요한일서 4:8")
                 .build()
         );
     }

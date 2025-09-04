@@ -1,8 +1,8 @@
 package com.dong.bible.application.service;
 
 import com.dong.bible.ENUM.Testament;
-import com.dong.bible.application.dto.BibleStatisticsDto;
-import com.dong.bible.application.dto.BookDto;
+import com.dong.bible.application.dto.query.BibleStatisticsQuery;
+import com.dong.bible.application.dto.query.BookQuery;
 import com.dong.bible.domain.book.Book;
 import com.dong.bible.domain.book.BookName;
 import com.dong.bible.domain.book.BookRepository;
@@ -56,7 +56,7 @@ class BookApplicationServiceTest {
         when(bookRepository.findAll()).thenReturn(allBooks);
 
         // When
-        List<BookDto> result = bookApplicationService.getAllBooks();
+        List<BookQuery> result = bookApplicationService.getAllBooks();
 
         // Then
         assertThat(result).hasSize(3);
@@ -77,7 +77,7 @@ class BookApplicationServiceTest {
         when(bookRepository.findAll()).thenReturn(allBooks);
 
         // When
-        BookDto result = bookApplicationService.getBookById(bookId);
+        BookQuery result = bookApplicationService.getBookById(bookId);
 
         // Then
         assertThat(result.getId()).isEqualTo(43);
@@ -114,8 +114,8 @@ class BookApplicationServiceTest {
         when(bookRepository.findByTestament(Testament.구약)).thenReturn(구약책들);
 
         // When
-        List<BookDto> 신약결과 = bookApplicationService.getBooksByTestament("신약");
-        List<BookDto> 구약결과 = bookApplicationService.getBooksByTestament("구약");
+        List<BookQuery> 신약결과 = bookApplicationService.getBooksByTestament("신약");
+        List<BookQuery> 구약결과 = bookApplicationService.getBooksByTestament("구약");
 
         // Then
         assertThat(신약결과).hasSize(1);
@@ -150,7 +150,7 @@ class BookApplicationServiceTest {
         when(bookRepository.findNewTestamentBooks()).thenReturn(신약Books);
 
         // When
-        Map<String, List<BookDto>> result = bookApplicationService.getGroupedBooksByTestament();
+        Map<String, List<BookQuery>> result = bookApplicationService.getGroupedBooksByTestament();
 
         // Then
         assertThat(result).hasSize(2);
@@ -185,7 +185,7 @@ class BookApplicationServiceTest {
             .thenReturn(mockStatistics);
 
         // When
-        BibleStatisticsDto result = bookApplicationService.getBibleStatistics();
+        BibleStatisticsQuery result = bookApplicationService.getBibleStatistics();
 
         // Then
         assertThat(result.getTotalBooks()).isEqualTo(3);
@@ -200,13 +200,13 @@ class BookApplicationServiceTest {
     }
 
     @Test
-    void 성경책_이름으로_BookDto_조회_성공() {
+    void 성경책_이름으로_BookQuery_조회_성공() {
         // Given
         String bookName = "요한복음";
         when(bookRepository.findByName(bookName)).thenReturn(Optional.of(요한복음));
 
         // When
-        Optional<BookDto> result = bookApplicationService.getBookByName(bookName);
+        Optional<BookQuery> result = bookApplicationService.getBookByName(bookName);
 
         // Then
         assertThat(result).isPresent();
@@ -217,13 +217,13 @@ class BookApplicationServiceTest {
     }
 
     @Test
-    void 성경책_이름으로_BookDto_조회_실패() {
+    void 성경책_이름으로_BookQuery_조회_실패() {
         // Given
         String bookName = "존재하지않는책";
         when(bookRepository.findByName(bookName)).thenReturn(Optional.empty());
 
         // When
-        Optional<BookDto> result = bookApplicationService.getBookByName(bookName);
+        Optional<BookQuery> result = bookApplicationService.getBookByName(bookName);
 
         // Then
         assertThat(result).isEmpty();
@@ -242,13 +242,13 @@ class BookApplicationServiceTest {
     }
 
     @Test
-    void BookName_Value_Object로_BookDto_조회() {
+    void BookName_Value_Object로_BookQuery_조회() {
         // Given
         BookName bookName = BookName.of("요한복음");
         when(bookRepository.findByName(bookName)).thenReturn(Optional.of(요한복음));
 
         // When
-        Optional<BookDto> result = bookApplicationService.getBookByName(bookName);
+        Optional<BookQuery> result = bookApplicationService.getBookByName(bookName);
 
         // Then
         assertThat(result).isPresent();
@@ -367,7 +367,7 @@ class BookApplicationServiceTest {
         when(bookRepository.findByName("요한복음")).thenReturn(Optional.of(요한복음));
 
         // When
-        Optional<BookDto> result = bookApplicationService.getBookByName(bookName);
+        Optional<BookQuery> result = bookApplicationService.getBookByName(bookName);
 
         // Then
         assertThat(result).isPresent();

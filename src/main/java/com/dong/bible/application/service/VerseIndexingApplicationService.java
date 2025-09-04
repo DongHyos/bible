@@ -1,7 +1,7 @@
 package com.dong.bible.application.service;
 
-import com.dong.bible.application.dto.BookDto;
-import com.dong.bible.application.dto.VerseQueryDto;
+import com.dong.bible.application.dto.query.BookQuery;
+import com.dong.bible.application.dto.query.VerseQuery;
 import com.dong.bible.domain.verse.BibleVerse;
 import com.dong.bible.infrastructure.search.document.VerseSearchDocument;
 import com.dong.bible.infrastructure.search.repository.VerseSearchRepository;
@@ -40,13 +40,13 @@ public class VerseIndexingApplicationService {
             log.info("기존 ElasticSearch 인덱스 삭제 완료");
             
             // 2. 모든 책 조회
-            List<BookDto> books = bookApplicationService.getAllBooks();
+            List<BookQuery> books = bookApplicationService.getAllBooks();
             log.info("총 {}개 책 조회 완료", books.size());
             
             int totalIndexed = 0;
             
             // 3. 각 책별로 구절 인덱싱
-            for (BookDto book : books) {
+            for (BookQuery book : books) {
                 int bookIndexed = indexVersesByBook(book.getId().intValue(), book.getName());
                 totalIndexed += bookIndexed;
                 log.info("책 '{}' 인덱싱 완료: {}개 구절", book.getName(), bookIndexed);
@@ -69,12 +69,12 @@ public class VerseIndexingApplicationService {
         
         try {
             // 1. 해당 책의 모든 구절 조회
-            List<VerseQueryDto> verses = verseApplicationService.getBookVerses(bookId);
+            List<VerseQuery> verses = verseApplicationService.getBookVerses(bookId);
             log.info("책 '{}'의 구절 {}개 조회 완료", bookName, verses.size());
             
             // 2. 각 구절을 ElasticSearch Document로 변환 및 저장
             int indexedCount = 0;
-            for (VerseQueryDto verse : verses) {
+            for (VerseQuery verse : verses) {
                 try {
                     indexSingleVerse(verse, bookId, bookName);
                     indexedCount++;
@@ -97,7 +97,7 @@ public class VerseIndexingApplicationService {
      * 개별 구절 인덱싱
      */
     @Transactional
-    public void indexSingleVerse(VerseQueryDto verse, Integer bookId, String bookName) {
+    public void indexSingleVerse(VerseQuery verse, Integer bookId, String bookName) {
         try {
             // 1. VerseDto를 BibleVerse Domain 객체로 변환 (임시)
             // TODO: 더 좋은 변환 방법 고려

@@ -1,7 +1,7 @@
 package com.dong.bible.application.service;
 
-import com.dong.bible.application.dto.BookDto;
-import com.dong.bible.application.dto.VerseQueryDto;
+import com.dong.bible.application.dto.query.BookQuery;
+import com.dong.bible.application.dto.query.VerseQuery;
 import com.dong.bible.infrastructure.search.repository.VerseSearchRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,14 +35,14 @@ class VerseIndexingApplicationServiceTest {
     @InjectMocks
     private VerseIndexingApplicationService verseIndexingApplicationService;
 
-    private BookDto sampleBook1;
-    private BookDto sampleBook2;
-    private VerseQueryDto sampleVerse1;
-    private VerseQueryDto sampleVerse2;
+    private BookQuery sampleBook1;
+    private BookQuery sampleBook2;
+    private VerseQuery sampleVerse1;
+    private VerseQuery sampleVerse2;
 
     @BeforeEach
     void setUp() {
-        sampleBook1 = BookDto.builder()
+        sampleBook1 = BookQuery.builder()
                 .id(1L)
                 .name("창세기")
                 .abbreviation("창")
@@ -52,7 +52,7 @@ class VerseIndexingApplicationServiceTest {
                 .categoryId(1L)
                 .build();
 
-        sampleBook2 = BookDto.builder()
+        sampleBook2 = BookQuery.builder()
                 .id(2L)
                 .name("출애굽기")
                 .abbreviation("출")
@@ -62,7 +62,7 @@ class VerseIndexingApplicationServiceTest {
                 .categoryId(1L)
                 .build();
 
-        // VerseQueryDto는 AllArgsConstructor(access = AccessLevel.PRIVATE)이므로 직접 생성 불가
+        // VerseQuery는 AllArgsConstructor(access = AccessLevel.PRIVATE)이므로 직접 생성 불가
         // 실제 테스트에서는 Mock 처리
     }
 
@@ -70,10 +70,10 @@ class VerseIndexingApplicationServiceTest {
     @DisplayName("전체 구절 인덱싱 - 성공")
     void indexAllVerses_Success() {
         // given
-        List<BookDto> books = Arrays.asList(sampleBook1, sampleBook2);
-        VerseQueryDto mockVerse1 = mock(VerseQueryDto.class);
-        VerseQueryDto mockVerse2 = mock(VerseQueryDto.class);
-        VerseQueryDto mockVerse3 = mock(VerseQueryDto.class);
+        List<BookQuery> books = Arrays.asList(sampleBook1, sampleBook2);
+        VerseQuery mockVerse1 = mock(VerseQuery.class);
+        VerseQuery mockVerse2 = mock(VerseQuery.class);
+        VerseQuery mockVerse3 = mock(VerseQuery.class);
         
         when(mockVerse1.getChapter()).thenReturn(1);
         when(mockVerse1.getVerse()).thenReturn(1);
@@ -87,8 +87,8 @@ class VerseIndexingApplicationServiceTest {
         when(mockVerse3.getVerse()).thenReturn(1);
         when(mockVerse3.getText()).thenReturn("하나님이 애굽에서 나온 이스라엘을 위하여");
         
-        List<VerseQueryDto> book1Verses = Arrays.asList(mockVerse1, mockVerse2);
-        List<VerseQueryDto> book2Verses = Arrays.asList(mockVerse3);
+        List<VerseQuery> book1Verses = Arrays.asList(mockVerse1, mockVerse2);
+        List<VerseQuery> book2Verses = Arrays.asList(mockVerse3);
 
         when(bookApplicationService.getAllBooks()).thenReturn(books);
         when(verseApplicationService.getBookVerses(1)).thenReturn(book1Verses);
@@ -129,8 +129,8 @@ class VerseIndexingApplicationServiceTest {
         Integer bookId = 1;
         String bookName = "창세기";
         
-        VerseQueryDto mockVerse1 = mock(VerseQueryDto.class);
-        VerseQueryDto mockVerse2 = mock(VerseQueryDto.class);
+        VerseQuery mockVerse1 = mock(VerseQuery.class);
+        VerseQuery mockVerse2 = mock(VerseQuery.class);
         
         when(mockVerse1.getChapter()).thenReturn(1);
         when(mockVerse1.getVerse()).thenReturn(1);
@@ -140,7 +140,7 @@ class VerseIndexingApplicationServiceTest {
         when(mockVerse2.getVerse()).thenReturn(2);
         when(mockVerse2.getText()).thenReturn("땅이 혼돈하고 공허하며 흑암이 깊음 위에 있고");
         
-        List<VerseQueryDto> verses = Arrays.asList(mockVerse1, mockVerse2);
+        List<VerseQuery> verses = Arrays.asList(mockVerse1, mockVerse2);
 
         when(verseApplicationService.getBookVerses(bookId)).thenReturn(verses);
         when(verseSearchRepository.save(any())).thenReturn(null);
@@ -160,7 +160,7 @@ class VerseIndexingApplicationServiceTest {
         // given
         Integer bookId = 1;
         String bookName = "창세기";
-        List<VerseQueryDto> emptyVerses = Collections.emptyList();
+        List<VerseQuery> emptyVerses = Collections.emptyList();
 
         when(verseApplicationService.getBookVerses(bookId)).thenReturn(emptyVerses);
 
@@ -180,8 +180,8 @@ class VerseIndexingApplicationServiceTest {
         Integer bookId = 1;
         String bookName = "창세기";
         
-        VerseQueryDto mockVerse1 = mock(VerseQueryDto.class);
-        VerseQueryDto mockVerse2 = mock(VerseQueryDto.class);
+        VerseQuery mockVerse1 = mock(VerseQuery.class);
+        VerseQuery mockVerse2 = mock(VerseQuery.class);
         
         when(mockVerse1.getChapter()).thenReturn(1);
         when(mockVerse1.getVerse()).thenReturn(1);
@@ -191,7 +191,7 @@ class VerseIndexingApplicationServiceTest {
         when(mockVerse2.getVerse()).thenReturn(2);
         when(mockVerse2.getText()).thenReturn("땅이 혼돈하고 공허하며 흑암이 깊음 위에 있고");
         
-        List<VerseQueryDto> verses = Arrays.asList(mockVerse1, mockVerse2);
+        List<VerseQuery> verses = Arrays.asList(mockVerse1, mockVerse2);
 
         when(verseApplicationService.getBookVerses(bookId)).thenReturn(verses);
         when(verseSearchRepository.save(any()))
@@ -229,7 +229,7 @@ class VerseIndexingApplicationServiceTest {
     @DisplayName("개별 구절 인덱싱 - 성공")
     void indexSingleVerse_Success() {
         // given
-        VerseQueryDto mockVerse = mock(VerseQueryDto.class);
+        VerseQuery mockVerse = mock(VerseQuery.class);
         when(mockVerse.getChapter()).thenReturn(1);
         when(mockVerse.getVerse()).thenReturn(1);
         when(mockVerse.getText()).thenReturn("태초에 하나님이 천지를 창조하시니라");
@@ -251,7 +251,7 @@ class VerseIndexingApplicationServiceTest {
     @DisplayName("개별 구절 인덱싱 - ElasticSearch 저장 실패")
     void indexSingleVerse_SaveFailure() {
         // given
-        VerseQueryDto mockVerse = mock(VerseQueryDto.class);
+        VerseQuery mockVerse = mock(VerseQuery.class);
         when(mockVerse.getChapter()).thenReturn(1);
         when(mockVerse.getVerse()).thenReturn(1);
         when(mockVerse.getText()).thenReturn("태초에 하나님이 천지를 창조하시니라");

@@ -20,5 +20,5 @@ public class BibleCategoryResponse {
     private Integer bookCount; // 해당 분류의 책 수 (Service에서 계산 후 설정)
     
     @Setter
-    private List<BibleBookDto> books; // 해당 분류의 책들 (Service에서 매핑 후 설정)
+    private List<BibleBookResponse> books; // 해당 분류의 책들 (Service에서 매핑 후 설정)
 }

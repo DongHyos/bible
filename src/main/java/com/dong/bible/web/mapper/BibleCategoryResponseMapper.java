@@ -1,9 +1,9 @@
 package com.dong.bible.web.mapper;
 
-import com.dong.bible.application.dto.BibleCategoryDto;
-import com.dong.bible.application.dto.BookDto;
+import com.dong.bible.application.dto.query.BibleCategoryQuery;
+import com.dong.bible.application.dto.query.BookQuery;
 import com.dong.bible.infrastructure.persistence.entity.BibleCategoryEntity;
-import com.dong.bible.web.dto.response.BibleBookDto;
+import com.dong.bible.web.dto.response.BibleBookResponse;
 import com.dong.bible.web.dto.response.BibleCategoryResponse;
 import com.dong.bible.web.mapper.BookResponseMapper;
 import lombok.RequiredArgsConstructor;
@@ -61,12 +61,12 @@ public class BibleCategoryResponseMapper {
     /**
      * Application DTO → Web DTO 변환
      */
-    public BibleCategoryResponse fromApplicationDto(BibleCategoryDto appDto) {
+    public BibleCategoryResponse fromApplicationDto(BibleCategoryQuery appDto) {
         if (appDto == null) {
             return null;
         }
         
-        List<BibleBookDto> webBooks = bookResponseMapper.fromBookDtoList(appDto.getBooks());
+        List<BibleBookResponse> webBooks = bookResponseMapper.fromBookQueryList(appDto.getBooks());
         
         return BibleCategoryResponse.builder()
                 .id(appDto.getId())
@@ -83,7 +83,7 @@ public class BibleCategoryResponseMapper {
     /**
      * List<Application DTO> → List<Web DTO> 변환
      */
-    public List<BibleCategoryResponse> fromApplicationDtoList(List<BibleCategoryDto> appDtos) {
+    public List<BibleCategoryResponse> fromApplicationDtoList(List<BibleCategoryQuery> appDtos) {
         if (appDtos == null) {
             return List.of();
         }
@@ -97,7 +97,7 @@ public class BibleCategoryResponseMapper {
     /**
      * Map<String, List<Application DTO>> → Map<String, List<Web DTO>> 변환
      */
-    public Map<String, List<BibleCategoryResponse>> fromApplicationDtoMap(Map<String, List<BibleCategoryDto>> appDtoMap) {
+    public Map<String, List<BibleCategoryResponse>> fromApplicationDtoMap(Map<String, List<BibleCategoryQuery>> appDtoMap) {
         if (appDtoMap == null) {
             return Map.of();
         }

@@ -1,7 +1,7 @@
 package com.dong.bible.application.service;
 
-import com.dong.bible.application.dto.SermonDetailDto;
-import com.dong.bible.application.dto.SermonSummaryDto;
+import com.dong.bible.application.dto.query.SermonDetailQuery;
+import com.dong.bible.application.dto.query.SermonSummaryQuery;
 import com.dong.bible.domain.sermon.Sermon;
 import com.dong.bible.domain.sermon.SermonDomainService;
 import lombok.RequiredArgsConstructor;
@@ -31,27 +31,27 @@ public class SermonApplicationService {
      * 설교 ID로 상세 조회
      * Use Case: 설교 상세 페이지 표시
      */
-    public SermonDetailDto getSermonById(Long sermonId) {
+    public SermonDetailQuery getSermonById(Long sermonId) {
         log.info("설교 상세 조회: ID={}", sermonId);
         
         Sermon sermon = sermonDomainService.getSermonById(sermonId)
                 .orElseThrow(() -> new IllegalArgumentException("설교를 찾을 수 없습니다: " + sermonId));
         
-        return SermonDetailDto.from(sermon);
+        return SermonDetailQuery.from(sermon);
     }
     
     /**
      * 특정 구절과 관련된 설교 목록 조회
      * Use Case: 성경 구절 클릭 시 관련 설교 목록 표시
      */
-    public List<SermonSummaryDto> getSermonsByVerse(Integer bookId, Short chapter, Short verse) {
+    public List<SermonSummaryQuery> getSermonsByVerse(Integer bookId, Short chapter, Short verse) {
         log.info("특정 구절 설교 조회: 책ID={}, 장={}, 절={}", bookId, chapter, verse);
         
         List<Sermon> sermons = sermonDomainService.getSermonsByVerse(bookId, chapter, verse);
         log.info("조회된 설교 수: {}", sermons.size());
         
         return sermons.stream()
-                .map(SermonSummaryDto::from)
+                .map(SermonSummaryQuery::from)
                 .collect(Collectors.toList());
     }
     
@@ -59,14 +59,14 @@ public class SermonApplicationService {
      * 설교자별 설교 목록 조회
      * Use Case: 설교자별 설교 목록 페이지 표시
      */
-    public List<SermonSummaryDto> getSermonsByPastor(String pastorName) {
+    public List<SermonSummaryQuery> getSermonsByPastor(String pastorName) {
         log.info("설교자별 설교 조회: {}", pastorName);
         
         List<Sermon> sermons = sermonDomainService.getSermonsByPastor(pastorName);
         log.info("조회된 설교 수: {}", sermons.size());
         
         return sermons.stream()
-                .map(SermonSummaryDto::from)
+                .map(SermonSummaryQuery::from)
                 .collect(Collectors.toList());
     }
     
@@ -74,14 +74,14 @@ public class SermonApplicationService {
      * 교회별 설교 목록 조회
      * Use Case: 교회별 설교 목록 페이지 표시
      */
-    public List<SermonSummaryDto> getSermonsByChurch(String churchName) {
+    public List<SermonSummaryQuery> getSermonsByChurch(String churchName) {
         log.info("교회별 설교 조회: {}", churchName);
         
         List<Sermon> sermons = sermonDomainService.getSermonsByChurch(churchName);
         log.info("조회된 설교 수: {}", sermons.size());
         
         return sermons.stream()
-                .map(SermonSummaryDto::from)
+                .map(SermonSummaryQuery::from)
                 .collect(Collectors.toList());
     }
     
@@ -89,14 +89,14 @@ public class SermonApplicationService {
      * 제목으로 설교 검색
      * Use Case: 설교 검색 결과 목록 표시
      */
-    public List<SermonSummaryDto> searchSermonsByTitle(String title) {
+    public List<SermonSummaryQuery> searchSermonsByTitle(String title) {
         log.info("제목으로 설교 검색: {}", title);
         
         List<Sermon> sermons = sermonDomainService.searchSermonsByTitle(title);
         log.info("검색된 설교 수: {}", sermons.size());
         
         return sermons.stream()
-                .map(SermonSummaryDto::from)
+                .map(SermonSummaryQuery::from)
                 .collect(Collectors.toList());
     }
     
@@ -104,14 +104,14 @@ public class SermonApplicationService {
      * 인기 설교 목록 조회 (조회수 기준)
      * Use Case: 인기 설교 목록 페이지 표시
      */
-    public List<SermonSummaryDto> getPopularSermons() {
+    public List<SermonSummaryQuery> getPopularSermons() {
         log.info("인기 설교 조회");
         
         List<Sermon> popularSermons = sermonDomainService.getPopularSermons();
         log.info("조회된 인기 설교 수: {}", popularSermons.size());
         
         return popularSermons.stream()
-                .map(SermonSummaryDto::from)
+                .map(SermonSummaryQuery::from)
                 .collect(Collectors.toList());
     }
     
@@ -119,14 +119,14 @@ public class SermonApplicationService {
      * 최신 설교 목록 조회
      * Use Case: 최신 설교 목록 페이지 표시
      */
-    public List<SermonSummaryDto> getLatestSermons() {
+    public List<SermonSummaryQuery> getLatestSermons() {
         log.info("최신 설교 조회");
         
         List<Sermon> latestSermons = sermonDomainService.getLatestSermons();
         log.info("조회된 최신 설교 수: {}", latestSermons.size());
         
         return latestSermons.stream()
-                .map(SermonSummaryDto::from)
+                .map(SermonSummaryQuery::from)
                 .collect(Collectors.toList());
     }
     
@@ -146,14 +146,14 @@ public class SermonApplicationService {
      * 관련 설교 추천 조회
      * Use Case: 설교 상세 페이지에서 관련 설교 추천
      */
-    public List<SermonSummaryDto> getRelatedSermons(Long baseSermonId) {
+    public List<SermonSummaryQuery> getRelatedSermons(Long baseSermonId) {
         log.info("관련 설교 추천 조회: baseSermonId={}", baseSermonId);
         
         List<Sermon> relatedSermons = sermonDomainService.getRelatedSermons(baseSermonId);
         log.info("조회된 관련 설교 수: {}", relatedSermons.size());
         
         return relatedSermons.stream()
-                .map(SermonSummaryDto::from)
+                .map(SermonSummaryQuery::from)
                 .collect(Collectors.toList());
     }
     
@@ -161,14 +161,14 @@ public class SermonApplicationService {
      * 트렌딩 설교 추천 조회
      * Use Case: 트렌딩 설교 목록 페이지 표시
      */
-    public List<SermonSummaryDto> getTrendingSermons() {
+    public List<SermonSummaryQuery> getTrendingSermons() {
         log.info("트렌딩 설교 조회");
         
         List<Sermon> trendingSermons = sermonDomainService.getTrendingSermons();
         log.info("조회된 트렌딩 설교 수: {}", trendingSermons.size());
         
         return trendingSermons.stream()
-                .map(SermonSummaryDto::from)
+                .map(SermonSummaryQuery::from)
                 .collect(Collectors.toList());
     }
     
@@ -176,14 +176,14 @@ public class SermonApplicationService {
      * 베스트 설교 추천 조회 (종합 점수 기준)
      * Use Case: 베스트 설교 목록 페이지 표시
      */
-    public List<SermonSummaryDto> getBestSermons() {
+    public List<SermonSummaryQuery> getBestSermons() {
         log.info("베스트 설교 조회");
         
         List<Sermon> bestSermons = sermonDomainService.getBestSermons();
         log.info("조회된 베스트 설교 수: {}", bestSermons.size());
         
         return bestSermons.stream()
-                .map(SermonSummaryDto::from)
+                .map(SermonSummaryQuery::from)
                 .collect(Collectors.toList());
     }
 }

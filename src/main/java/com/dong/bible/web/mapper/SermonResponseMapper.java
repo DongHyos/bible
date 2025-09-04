@@ -1,11 +1,11 @@
 package com.dong.bible.web.mapper;
 
-import com.dong.bible.application.dto.SermonDetailDto;
-import com.dong.bible.application.dto.SermonSummaryDto;
+import com.dong.bible.application.dto.query.SermonDetailQuery;
+import com.dong.bible.application.dto.query.SermonSummaryQuery;
 import com.dong.bible.common.utils.YoutubeUtils;
-import com.dong.bible.web.dto.response.SermonDto;
-import com.dong.bible.web.dto.response.SermonSimpleDto;
-import com.dong.bible.web.dto.response.SermonVerseDto;
+import com.dong.bible.web.dto.response.SermonResponse;
+import com.dong.bible.web.dto.response.SermonSimpleResponse;
+import com.dong.bible.web.dto.response.SermonVerseResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -27,9 +27,9 @@ public class SermonResponseMapper {
     // ========================================
     
     /**
-     * SermonDetailDto → SermonDto 변환
+     * SermonDetailQuery → SermonResponse 변환
      */
-    public SermonDto fromDetailDto(SermonDetailDto detailDto) {
+    public SermonResponse fromDetailDto(SermonDetailQuery detailDto) {
         if (detailDto == null) {
             return null;
         }
@@ -40,7 +40,7 @@ public class SermonResponseMapper {
             detailDto.getYoutubeUrl()
         );
         
-        return SermonDto.builder()
+        return SermonResponse.builder()
                 .id(detailDto.getId())
                 .title(detailDto.getTitle())
                 .pastorName(detailDto.getPastorName())
@@ -58,9 +58,9 @@ public class SermonResponseMapper {
     }
     
     /**
-     * SermonSummaryDto → SermonSimpleDto 변환
+     * SermonSummaryQuery → SermonSimpleResponse 변환
      */
-    public SermonSimpleDto fromSummaryDto(SermonSummaryDto summaryDto) {
+    public SermonSimpleResponse fromSummaryDto(SermonSummaryQuery summaryDto) {
         if (summaryDto == null) {
             return null;
         }
@@ -71,7 +71,7 @@ public class SermonResponseMapper {
             summaryDto.getYoutubeUrl()
         );
         
-        return SermonSimpleDto.builder()
+        return SermonSimpleResponse.builder()
                 .id(summaryDto.getId())
                 .title(summaryDto.getTitle())
                 .pastorName(summaryDto.getPastorName())
@@ -87,9 +87,9 @@ public class SermonResponseMapper {
     }
     
     /**
-     * List<SermonSummaryDto> → List<SermonSimpleDto> 변환
+     * List<SermonSummaryQuery> → List<SermonSimpleResponse> 변환
      */
-    public List<SermonSimpleDto> fromSummaryDtoList(List<SermonSummaryDto> summaryDtos) {
+    public List<SermonSimpleResponse> fromSummaryDtoList(List<SermonSummaryQuery> summaryDtos) {
         if (summaryDtos == null) {
             return Collections.emptyList();
         }
@@ -132,9 +132,9 @@ public class SermonResponseMapper {
     }
     
     /**
-     * SermonDetailDto.SermonVerseInfo List → SermonVerseDto List 변환
+     * SermonDetailQuery.SermonVerseInfo List → SermonVerseResponse List 변환
      */
-    private List<SermonVerseDto> mapSermonVerseInfos(List<SermonDetailDto.SermonVerseInfo> verseInfos) {
+    private List<SermonVerseResponse> mapSermonVerseInfos(List<SermonDetailQuery.SermonVerseInfo> verseInfos) {
         if (verseInfos == null || verseInfos.isEmpty()) {
             return Collections.emptyList();
         }
@@ -146,14 +146,14 @@ public class SermonResponseMapper {
     }
     
     /**
-     * SermonDetailDto.SermonVerseInfo → SermonVerseDto 변환
+     * SermonDetailQuery.SermonVerseInfo → SermonVerseResponse 변환
      */
-    private SermonVerseDto mapSermonVerseInfo(SermonDetailDto.SermonVerseInfo verseInfo) {
+    private SermonVerseResponse mapSermonVerseInfo(SermonDetailQuery.SermonVerseInfo verseInfo) {
         if (verseInfo == null) {
             return null;
         }
         
-        return SermonVerseDto.builder()
+        return SermonVerseResponse.builder()
                 .id(null) // Application DTO SermonVerseInfo는 ID가 없음
                 .bookId(verseInfo.getBookId())
                 .bookName(verseInfo.getBookName())

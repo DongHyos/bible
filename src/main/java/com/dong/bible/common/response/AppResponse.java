@@ -65,6 +65,16 @@ public class AppResponse<T> {
     public static <T> AppResponse<T> ok(List<?> payload, ResPaging page, Class<?> dtoType){
         return AppResponse.of(payload, page, dtoType);
     }
+    
+    public static <T> AppResponse<List<T>> ok(Page<?> page, List<T> mappedPayload){
+        return AppResponse.<List<T>>builder()
+                .status(ResponseCode.OK.status().value())
+                .code(ResponseCode.OK.code())
+                .message(ResponseCode.OK.message())
+                .payload(mappedPayload)
+                .paging(ResPaging.of(page))
+                .build();
+    }
 
     public static <T> AppResponse<T> of(T payload, ResponseCode responseCode, String message){
         return AppResponse.<T>builder()
